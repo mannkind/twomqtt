@@ -12,14 +12,3 @@ type Event struct {
 	Type    reflect.Type
 	Payload interface{}
 }
-
-// Observer -
-type Observer interface {
-	ReceiveState(Event)
-	ReceiveCommand(Command, Event)
-}
-
-// Publisher -
-type Publisher interface {
-	Register(Observer)
-}

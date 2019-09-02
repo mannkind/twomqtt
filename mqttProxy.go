@@ -60,8 +60,8 @@ func (c *MQTTProxy) LogSettings() {
 	}).Info("MQTT Environmental Settings")
 }
 
-// Publish - Publish a topic and payload via the MQTTClientWrapperWrapper
-func (c *MQTTProxy) Publish(topic string, payload string) {
+// PublishWithOpts - Publish a topic and payload with specific options
+func (c *MQTTProxy) PublishWithOpts(topic string, payload string, opts MQTTProxyPublishOptions) {
 	c.lastPublishedMutex.Lock()
 	defer c.lastPublishedMutex.Unlock()
 
@@ -69,22 +69,33 @@ func (c *MQTTProxy) Publish(topic string, payload string) {
 		"topic":   topic,
 		"payload": payload,
 	})
-	llog.Info("Publishing to MQTT")
 
-	// Should we publish this again?
-	// NOTE: We must allow the availability topic to publish duplicates
-	if lastPayload, ok := c.lastPublished[topic]; topic != c.AvailabilityTopic() && ok && lastPayload == payload {
-		llog.Debug("Duplicate avoided while publishing to MQTT")
-		return
+	// Should we check for duplicates?
+	if opts.DuplicateCheck {
+		// Should we publish this again?
+		// NOTE: We must allow the availability topic to publish duplicates
+		if lastPayload, ok := c.lastPublished[topic]; topic != c.AvailabilityTopic() && ok && lastPayload == payload {
+			llog.Debug("Duplicate avoided while publishing to MQTT")
+			return
+		}
 	}
 
-	retain := true
-	if token := c.Client.Publish(topic, 0, retain, payload); token.Wait() && token.Error() != nil {
+	llog.Info("Publishing to MQTT")
+
+	if token := c.Client.Publish(topic, 0, opts.Retained, payload); token.Wait() && token.Error() != nil {
 		log.Error("Error publishing to MQTT")
 	}
 
 	log.Info("Finished publishing to MQTT")
 	c.lastPublished[topic] = payload
+}
+
+// Publish - Publish a topic and payload with default options
+func (c *MQTTProxy) Publish(topic string, payload string) {
+	c.PublishWithOpts(topic, payload, MQTTProxyPublishOptions{
+		Retained:       true,
+		DuplicateCheck: true,
+	})
 }
 
 // PublishDiscovery - Publish a MQTTDiscovery
