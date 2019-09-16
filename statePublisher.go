@@ -11,6 +11,9 @@ type StatePublisher struct {
 
 // Register - Register an observer
 func (c *StatePublisher) Register(l StateObserver) {
+	if c.observers == nil {
+		c.observers = map[StateObserver]struct{}{}
+	}
 	c.observers[l] = struct{}{}
 }
 

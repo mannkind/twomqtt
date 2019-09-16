@@ -11,6 +11,9 @@ type CommandPublisher struct {
 
 // Register - Register an observer
 func (c *CommandPublisher) Register(l CommandObserver) {
+	if c.observers == nil {
+		c.observers = map[CommandObserver]struct{}{}
+	}
 	c.observers[l] = struct{}{}
 }
 
