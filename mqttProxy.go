@@ -145,6 +145,11 @@ func (c *MQTTProxy) NewMQTTDiscovery(name string, sensor string, sensorType stri
 		Name:              discoveryObjectName(c.DiscoveryName, name, sensor),
 		StateTopic:        c.StateTopic(name, sensor),
 		UniqueID:          discoveryObjectUniqueID(c.DiscoveryName, name, sensor),
+		Device: MQTTDiscoveryDevice{
+			Identifiers:  []string{c.AvailabilityTopic()},
+			Manufacturer: "twomqtt",
+			Name:         c.DiscoveryName,
+		},
 	}
 
 	return &mqd
