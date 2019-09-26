@@ -7,22 +7,21 @@ import (
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	backoff "github.com/jpillora/backoff"
 	log "github.com/sirupsen/logrus"
 )
 
 // MQTTProxy - A wrapper for the Paho MQTT
 type MQTTProxy struct {
 	MQTTProxyConfig
-	Client             mqtt.Client
-	lastPublished      map[string]string
-	lastPublishedMutex sync.Mutex
+	Client        mqtt.Client
+	lastPublished sync.Map
 }
 
 // NewMQTTProxy - Create a proxy for an MQTT Client
 func NewMQTTProxy(mqttCfg MQTTProxyConfig) *MQTTProxy {
 	c := MQTTProxy{
 		MQTTProxyConfig: mqttCfg,
-		lastPublished:   map[string]string{},
 	}
 	return &c
 }
@@ -62,9 +61,6 @@ func (c *MQTTProxy) LogSettings() {
 
 // PublishWithOpts - Publish a topic and payload with specific options
 func (c *MQTTProxy) PublishWithOpts(topic string, payload string, opts MQTTProxyPublishOptions) {
-	c.lastPublishedMutex.Lock()
-	defer c.lastPublishedMutex.Unlock()
-
 	llog := log.WithFields(log.Fields{
 		"topic":   topic,
 		"payload": payload,
@@ -74,7 +70,7 @@ func (c *MQTTProxy) PublishWithOpts(topic string, payload string, opts MQTTProxy
 	if opts.DuplicateCheck {
 		// Should we publish this again?
 		// NOTE: We must allow the availability topic to publish duplicates
-		if lastPayload, ok := c.lastPublished[topic]; topic != c.AvailabilityTopic() && ok && lastPayload == payload {
+		if lastPayload, ok := c.lastPublished.Load(topic); topic != c.AvailabilityTopic() && ok && lastPayload == payload {
 			llog.Debug("Duplicate avoided while publishing to MQTT")
 			return
 		}
@@ -87,7 +83,7 @@ func (c *MQTTProxy) PublishWithOpts(topic string, payload string, opts MQTTProxy
 	}
 
 	log.Info("Finished publishing to MQTT")
-	c.lastPublished[topic] = payload
+	c.lastPublished.Store(topic, payload)
 }
 
 // Publish - Publish a topic and payload with default options
@@ -109,10 +105,11 @@ func (c *MQTTProxy) PublishDiscovery(mqd *MQTTDiscovery) {
 
 // LastPublishedOnTopic - Determine what was last published on a topic
 func (c *MQTTProxy) LastPublishedOnTopic(topic string) string {
-	c.lastPublishedMutex.Lock()
-	defer c.lastPublishedMutex.Unlock()
+	if result, ok := c.lastPublished.Load(topic); ok {
+		return result.(string)
+	}
 
-	return c.lastPublished[topic]
+	return ""
 }
 
 // Subscribe - Subscribe to a topic and payload via the MQTTClientWrapperWrapper
@@ -131,7 +128,30 @@ func (c *MQTTProxy) Subscribe(topic string, qos byte, callback mqtt.MessageHandl
 // Run - Connect to MQTT
 func (c *MQTTProxy) Run() {
 	log.Info("Connecting to MQTT")
-	c.runAfter(0 * time.Second)
+
+	b := &backoff.Backoff{
+		Max:    5 * time.Minute,
+		Jitter: true,
+	}
+
+	for {
+		if token := c.Client.Connect(); !token.Wait() || token.Error() != nil {
+			log.WithFields(log.Fields{
+				"error": token.Error(),
+			}).Error("Error connecting to MQTT")
+
+			delay := b.Duration()
+
+			log.WithFields(log.Fields{
+				"delay": delay,
+			}).Debug("Delayed (re)connecting to MQTT")
+
+			time.Sleep(delay)
+		}
+
+		b.Reset()
+		break
+	}
 }
 
 // NewMQTTDiscovery - Proxy a new MQTTDiscovery object
@@ -168,42 +188,4 @@ func (c *MQTTProxy) StateTopic(name string, sensor string) string {
 // CommandTopic - Generate the command topic for a named sensor
 func (c *MQTTProxy) CommandTopic(name string, sensor string) string {
 	return fmt.Sprintf("%s/%s/command", c.TopicPrefix, discoveryTopicID(name, sensor))
-}
-
-func (c *MQTTProxy) runAfter(delay time.Duration) {
-	time.Sleep(delay)
-
-	if token := c.Client.Connect(); !token.Wait() || token.Error() != nil {
-		log.WithFields(log.Fields{
-			"error": token.Error(),
-		}).Error("Error connecting to MQTT")
-
-		delay = c.adjustReconnectDelay(delay)
-
-		log.WithFields(log.Fields{
-			"delay": delay,
-		}).Debug("Delayed (re)connecting to MQTT")
-
-		c.runAfter(delay)
-	}
-}
-
-func (c *MQTTProxy) adjustReconnectDelay(delay time.Duration) time.Duration {
-	var maxDelay float64 = 120
-	defaultDelay := 2 * time.Second
-
-	// No delay, set to default delay
-	if delay.Seconds() == 0 {
-		delay = defaultDelay
-	} else {
-		// Increment the delay
-		delay = delay * 2
-
-		// If the delay is above two minutes, reset to default
-		if delay.Seconds() > maxDelay {
-			delay = defaultDelay
-		}
-	}
-
-	return delay
 }
