@@ -2,6 +2,7 @@ FROM golang:1.13
 ARG USERNAME=vscode
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
+ENV GO111MODULE=on
 
 # Configure apt, install packages and tools
 RUN apt-get update \
@@ -31,11 +32,11 @@ RUN apt-get update \
 	golang.org/x/tools/cmd/goimports \
 	golang.org/x/lint/golint \
 	golang.org/x/tools/gopls \
-	github.com/alecthomas/gometalinter \
 	honnef.co/go/tools/... \
 	github.com/golangci/golangci-lint/cmd/golangci-lint \
 	github.com/mgechev/revive \
-	github.com/derekparker/delve/cmd/dlv 2>&1 \
+	github.com/go-delve/delve \
+	github.com/go-delve/delve/cmd/dlv 2>&1 \
 	# Install mage
 	&& git clone https://github.com/magefile/mage \
 	&& cd mage && go run bootstrap.go install && cd - \

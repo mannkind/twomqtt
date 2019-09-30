@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - master
-  pull_request:
 jobs:
   all:
     name: Build, Test, Deploy, Tag
@@ -18,13 +17,5 @@ jobs:
         with:
           name: mannkind/twomqtt-dev
           dockerfile: .devcontainer/Dockerfile
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Publish to Registry
-        uses: elgohr/Publish-Docker-Github-Action@master
-        with:
-          name: mannkind/twomqtt
-          dockerfile: Dockerfile
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
