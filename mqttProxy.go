@@ -147,6 +147,7 @@ func (c *MQTTProxy) Run() {
 			}).Debug("Delayed (re)connecting to MQTT")
 
 			time.Sleep(delay)
+			continue
 		}
 
 		b.Reset()
