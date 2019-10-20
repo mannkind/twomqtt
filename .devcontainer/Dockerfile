@@ -13,7 +13,10 @@ RUN apt-get update \
 	&& mv gocode-gomod $GOPATH/bin/ \
 	#
 	# Install Go tools
-	&& go get -u -v \
+	# Install gopls separately because it's a pain in the ass
+	&& go get -v golang.org/x/tools/gopls@latest \
+	# Install other tools
+	&& go get -v \
 	github.com/mdempsky/gocode \
 	github.com/uudashr/gopkgs/cmd/gopkgs \
 	github.com/ramya-rao-a/go-outline \
@@ -21,6 +24,8 @@ RUN apt-get update \
 	github.com/godoctor/godoctor \
 	golang.org/x/tools/cmd/guru \
 	golang.org/x/tools/cmd/gorename \
+	golang.org/x/tools/cmd/goimports \
+	golang.org/x/lint/golint \
 	github.com/rogpeppe/godef \
 	github.com/zmb3/gogetdoc \
 	github.com/haya14busa/goplay/cmd/goplay \
@@ -29,14 +34,12 @@ RUN apt-get update \
 	github.com/davidrjenni/reftools/cmd/fillstruct \
 	github.com/fatih/gomodifytags \
 	github.com/cweill/gotests/... \
-	golang.org/x/tools/cmd/goimports \
-	golang.org/x/lint/golint \
-	golang.org/x/tools/gopls \
 	honnef.co/go/tools/... \
 	github.com/golangci/golangci-lint/cmd/golangci-lint \
 	github.com/mgechev/revive \
 	github.com/go-delve/delve \
 	github.com/go-delve/delve/cmd/dlv 2>&1 \
+	#
 	# Install mage
 	&& git clone https://github.com/magefile/mage \
 	&& cd mage && go run bootstrap.go install && cd - \
