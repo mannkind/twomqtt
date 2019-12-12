@@ -117,12 +117,23 @@ type MQTTDiscovery struct {
 	XyValueTemplate          string              `json:"xy_value_template,omitempty"`
 }
 
-// MQTTDiscoveryDevice - Contains the Device properties for MQTT Discovery.
-type MQTTDiscoveryDevice struct {
-	Identifiers  []string `json:"identifiers,omitempty"`
-	Connections  []string `json:"connections,omitempty"`
-	Manufacturer string   `json:"manufacturer,omitempty"`
-	Model        string   `json:"model,omitempty"`
-	Name         string   `json:"name,omitempty"`
-	SWVersion    string   `json:"sw_version,omitempty"`
+// NewMQTTDiscovery - Create a new MQTTDiscovery object
+func NewMQTTDiscovery(proxyConfig MQTTOpts, deviceName string, sensorName string, sensorType string) *MQTTDiscovery {
+	mqd := MQTTDiscovery{
+		DiscoveryPrefix:   proxyConfig.DiscoveryPrefix,
+		Component:         sensorType,
+		NodeID:            proxyConfig.DiscoveryName,
+		ObjectID:          proxyConfig.discoveryObjectID(deviceName, sensorName),
+		AvailabilityTopic: proxyConfig.AvailabilityTopic(),
+		Name:              proxyConfig.discoveryObjectName(deviceName, sensorName),
+		StateTopic:        proxyConfig.StateTopic(deviceName, sensorName),
+		UniqueID:          proxyConfig.discoveryObjectUniqueID(deviceName, sensorName),
+		Device: MQTTDiscoveryDevice{
+			Identifiers:  []string{proxyConfig.AvailabilityTopic()},
+			Manufacturer: "twomqtt",
+			Name:         proxyConfig.DiscoveryName,
+		},
+	}
+
+	return &mqd
 }

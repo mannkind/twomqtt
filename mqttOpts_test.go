@@ -6,10 +6,10 @@ import (
 
 func TestDiscoveryCalculateSlug(t *testing.T) {
 	var tests = []struct {
-		Name     string
-		Sensor   string
-		Sep      string
-		Expected string
+		DeviceName string
+		SensorName string
+		Delim      string
+		Expected   string
 	}{
 		{
 			"name",
@@ -25,8 +25,9 @@ func TestDiscoveryCalculateSlug(t *testing.T) {
 		},
 	}
 
+	c := MQTTOpts{}
 	for _, v := range tests {
-		actual := discoveryCalculateSlug(v.Name, v.Sensor, v.Sep)
+		actual := c.discoveryCalculateSlug(v.DeviceName, v.SensorName, v.Delim)
 		if actual != v.Expected {
 			t.Errorf("Actual:%s\nExpected:%s", actual, v.Expected)
 		}
@@ -35,9 +36,9 @@ func TestDiscoveryCalculateSlug(t *testing.T) {
 
 func TestDiscoveryTopicID(t *testing.T) {
 	var tests = []struct {
-		Name     string
-		Sensor   string
-		Expected string
+		DeviceName string
+		SensorName string
+		Expected   string
 	}{
 		{
 			"name",
@@ -51,8 +52,9 @@ func TestDiscoveryTopicID(t *testing.T) {
 		},
 	}
 
+	c := MQTTOpts{}
 	for _, v := range tests {
-		actual := discoveryTopicID(v.Name, v.Sensor)
+		actual := c.discoveryTopicID(v.DeviceName, v.SensorName)
 		if actual != v.Expected {
 			t.Errorf("Actual:%s\nExpected:%s", actual, v.Expected)
 		}
@@ -61,9 +63,9 @@ func TestDiscoveryTopicID(t *testing.T) {
 
 func TestDiscoveryObjectID(t *testing.T) {
 	var tests = []struct {
-		Name     string
-		Sensor   string
-		Expected string
+		DeviceName string
+		SensorName string
+		Expected   string
 	}{
 		{
 			"name",
@@ -77,8 +79,9 @@ func TestDiscoveryObjectID(t *testing.T) {
 		},
 	}
 
+	c := MQTTOpts{}
 	for _, v := range tests {
-		actual := discoveryObjectID(v.Name, v.Sensor)
+		actual := c.discoveryObjectID(v.DeviceName, v.SensorName)
 		if actual != v.Expected {
 			t.Errorf("Actual:%s\nExpected:%s", actual, v.Expected)
 		}
@@ -88,8 +91,8 @@ func TestDiscoveryObjectID(t *testing.T) {
 func TestDiscoveryObjectName(t *testing.T) {
 	var tests = []struct {
 		DiscoveryName string
-		Name          string
-		Sensor        string
+		DeviceName    string
+		SensorName    string
 		Expected      string
 	}{
 		{
@@ -107,7 +110,10 @@ func TestDiscoveryObjectName(t *testing.T) {
 	}
 
 	for _, v := range tests {
-		actual := discoveryObjectName(v.DiscoveryName, v.Name, v.Sensor)
+		c := MQTTOpts{
+			DiscoveryName: v.DiscoveryName,
+		}
+		actual := c.discoveryObjectName(v.DeviceName, v.SensorName)
 		if actual != v.Expected {
 			t.Errorf("Actual:%s\nExpected:%s", actual, v.Expected)
 		}
@@ -117,8 +123,8 @@ func TestDiscoveryObjectName(t *testing.T) {
 func TestDiscoveryObjectUniqueID(t *testing.T) {
 	var tests = []struct {
 		DiscoveryName string
-		Name          string
-		Sensor        string
+		DeviceName    string
+		SensorName    string
 		Expected      string
 	}{
 		{
@@ -136,7 +142,10 @@ func TestDiscoveryObjectUniqueID(t *testing.T) {
 	}
 
 	for _, v := range tests {
-		actual := discoveryObjectUniqueID(v.DiscoveryName, v.Name, v.Sensor)
+		c := MQTTOpts{
+			DiscoveryName: v.DiscoveryName,
+		}
+		actual := c.discoveryObjectUniqueID(v.DeviceName, v.SensorName)
 		if actual != v.Expected {
 			t.Errorf("Actual:%s\nExpected:%s", actual, v.Expected)
 		}
