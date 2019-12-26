@@ -6,7 +6,7 @@ ENV GO111MODULE=on
 
 # Configure apt, install packages and tools
 RUN apt-get update \
-	&& apt-get install -y git vim 2>&1 \
+	&& apt-get install -y git vim mosquitto mosquitto-clients 2>&1 \
 	# Install gocode-gomod
 	&& go get -x -d github.com/stamblerre/gocode 2>&1 \
 	&& go build -o gocode-gomod github.com/stamblerre/gocode \
