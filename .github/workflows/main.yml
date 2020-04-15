@@ -20,21 +20,22 @@ jobs:
 
       - name: Build and test
         run: |
-          dotnet build
-          dotnet test
+          dotnet build -c Release TwoMQTT
+          dotnet test TwoMQTTTest
 
       - name: Package (Master)
-        run: dotnet pack --configuration Release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-
-      - name: Push Package (Master)
-        run: dotnet nuget push "bin/Release/*.nupkg"
+        run: dotnet pack -c Release -o output TwoMQTT
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
 
       - name: Package (Non-Master)
-        run: dotnet pack --configuration Debug --version-suffix="${{ env.GITHUB_REF_SLUG }}"
+        run: dotnet pack -c Debug -o output --version-suffix="${{ env.GITHUB_REF_SLUG }}" TwoMQTT
         if: github.event_name == 'push' && github.ref != 'refs/heads/master'
 
+      - name: Set BUILD_VERSION
+        run: echo "::set-env name=BUILD_VERSION::$(ls output)"
+
       - name: Push Package (Non-Master)
-        run: dotnet nuget push "bin/Debug/*.nupkg"
-        if: github.event_name == 'push' && github.ref != 'refs/heads/master'
+        uses: actions/upload-artifact@v1
+        with:
+          name: ${{ env.BUILD_VERSION }}
+          path: output/${{ env.BUILD_VERSION }}

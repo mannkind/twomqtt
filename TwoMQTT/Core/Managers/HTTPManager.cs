@@ -5,7 +5,7 @@ using System.Threading;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace TwoMQTT.Core.Communication
+namespace TwoMQTT.Core.Managers
 {
     public abstract class HTTPManager<TSrc, TData, TCommand> : BackgroundService
     {

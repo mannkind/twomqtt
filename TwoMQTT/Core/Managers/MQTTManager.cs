@@ -15,7 +15,7 @@ using MQTTnet.Extensions.ManagedClient;
 using Newtonsoft.Json;
 using TwoMQTT.Core.Models;
 
-namespace TwoMQTT.Core.Communication
+namespace TwoMQTT.Core.Managers
 {
     public abstract class MQTTManager<TData, TCommand> : BackgroundService
     {
