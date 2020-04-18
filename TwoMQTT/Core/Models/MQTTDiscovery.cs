@@ -1,8 +1,12 @@
+using System.Collections.Generic;
 using System.ComponentModel;
 using Newtonsoft.Json;
 
 namespace TwoMQTT.Core.Models
 {
+    /// <summary>
+    /// An class representing fields in a MQTT Discovery payload.
+    /// </summary>
     public class MQTTDiscovery
     {
         [JsonProperty("aux_command_topic")]
@@ -114,7 +118,7 @@ namespace TwoMQTT.Core.Models
         public string CurrentTemperatureTemplate { get; set; } = string.Empty;
 
         [JsonProperty("device")]
-        public MQTTDiscoveryDevice Device { get; set; } = new MQTTDiscoveryDevice();
+        public DiscoveryDevice Device { get; set; } = new DiscoveryDevice();
 
         [JsonProperty("device_class")]
         [DefaultValue("")]
@@ -527,5 +531,35 @@ namespace TwoMQTT.Core.Models
         [JsonProperty("xy_value_template")]
         [DefaultValue("")]
         public string XyValueTemplate { get; set; } = string.Empty;
+
+        /// <summary>
+        /// An class representing fields in a MQTT Discovery Device payload.
+        /// </summary>
+        public class DiscoveryDevice
+        {
+            [JsonProperty("identifiers")]
+            [DefaultValue("")]
+            public List<string> Identifiers { get; set; } = new List<string>();
+
+            [JsonProperty("connections")]
+            [DefaultValue("")]
+            public List<string> Connections { get; set; } = new List<string>();
+
+            [JsonProperty("manufacturer")]
+            [DefaultValue("")]
+            public string Manufacturer { get; set; } = string.Empty;
+
+            [JsonProperty("model")]
+            [DefaultValue("")]
+            public string Model { get; set; } = string.Empty;
+
+            [JsonProperty("name")]
+            [DefaultValue("")]
+            public string Name { get; set; } = string.Empty;
+
+            [JsonProperty("sw_version")]
+            [DefaultValue("")]
+            public string SWVersion { get; set; } = string.Empty;
+        }
     }
 }

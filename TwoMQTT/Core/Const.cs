@@ -1,0 +1,36 @@
+namespace TwoMQTT.Core
+{
+    public class Const
+    {
+        /// <summary>
+        /// Home Assistant's default value for 'on'
+        /// </summary>
+        public const string ON = "ON";
+
+        /// <summary>
+        /// Home Assistant's default value for 'off'
+        /// </summary>
+        public const string OFF = "OFF";
+
+        /// <summary>
+        /// Home Assistant's default value for 'online'
+        /// </summary>
+        public const string ONLINE = "online";
+
+        /// <summary>
+        /// Home Assistant's default value for 'offline'
+        /// </summary>
+        public const string OFFLINE = "offline";
+
+        /// <summary>
+        /// Home Assistant's default word to describe a generic sensor
+        /// </summary>
+        public const string SENSOR = "sensor";
+
+        /// <summary>
+        /// Home Assistant's default word to describe a sensor with only two values
+        /// </summary>
+        public const string BINARY_SENSOR = "binary_sensor";
+
+    }
+}

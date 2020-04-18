@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using System.Text;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -11,23 +12,76 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MQTTnet;
 using MQTTnet.Client.Options;
+using MQTTnet.Client.Receiving;
 using MQTTnet.Extensions.ManagedClient;
 using Newtonsoft.Json;
 using TwoMQTT.Core.Models;
 
 namespace TwoMQTT.Core.Managers
 {
-    public abstract class MQTTManager<TData, TCommand> : BackgroundService
+    /// <summary>
+    /// An abstract class representing a managed way to interact with an MQTT broker.
+    /// </summary>
+    /// <typeparam name="TQuestion"></typeparam>
+    /// <typeparam name="TData"></typeparam>
+    /// <typeparam name="TCommand"></typeparam>
+    public abstract class MQTTManager<TQuestion, TData, TCommand> : BackgroundService
     {
-        public MQTTManager(ILogger<MQTTManager<TData, TCommand>> logger, IOptions<MQTTManagerOptions> opts, ChannelReader<TData> incoming, ChannelWriter<TCommand> outgoing)
+        /// <summary>
+        /// Initializes a new instance of the MQTTManager class.
+        /// </summary>
+        /// <param name="logger"></param>
+        /// <param name="opts"></param>
+        /// <param name="incomingData"></param>
+        /// <param name="outgoingCommand"></param>
+        /// <param name="questions"></param>
+        public MQTTManager(ILogger<MQTTManager<TQuestion, TData, TCommand>> logger, IOptions<MQTTManagerOptions> opts,
+            ChannelReader<TData> incomingData, ChannelWriter<TCommand> outgoingCommand, IEnumerable<TQuestion> questions)
         {
-            this.logger = logger;
-            this.opts = opts.Value;
-            this.incoming = incoming;
-            this.outgoing = outgoing;
-            this.client = new MqttFactory().CreateManagedMqttClient();
-            this.knownMessages = new ConcurrentDictionary<string, string>();
+            this.Logger = logger;
+            this.Opts = opts.Value;
+            this.IncomingData = incomingData;
+            this.OutgoingCommand = outgoingCommand;
+            this.Client = new MqttFactory().CreateManagedMqttClient();
+            this.KnownMessages = new ConcurrentDictionary<string, string>();
+            this.Questions = questions;
         }
+
+        /// <summary>
+        /// The logger used internally.
+        /// </summary>
+        protected readonly ILogger<MQTTManager<TQuestion, TData, TCommand>> Logger;
+
+        /// <summary>
+        /// The options required to communicate properly with MQTT.
+        /// </summary>
+        protected readonly MQTTManagerOptions Opts;
+
+        /// <summary>
+        /// The channel reader used to communicate data from the source.
+        /// </summary>
+        protected readonly ChannelReader<TData> IncomingData;
+
+        /// <summary>
+        /// The channel writer used to communicate commands to the source.
+        /// </summary>
+        protected readonly ChannelWriter<TCommand> OutgoingCommand;
+
+        /// <summary>
+        /// The MQTT client used to access the the MQTT broker.
+        /// </summary>
+        protected readonly IManagedMqttClient Client;
+
+        /// <summary>
+        /// The cache of known published messages; used to not continually publish duplicate messages.
+        /// </summary>
+        protected readonly ConcurrentDictionary<string, string> KnownMessages;
+
+        /// <summary>
+        /// The questions to ask the source (typically some kind of key/slug pairing).
+        /// Used for MQTT Discovery purposes.
+        /// </summary>
+        protected readonly IEnumerable<TQuestion> Questions;
 
         /// <summary>
         /// Executed as an IHostedService as a background job.
@@ -43,12 +97,13 @@ namespace TwoMQTT.Core.Managers
             {
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    await this.ReadIncomingAsync(cancellationToken);
+                    await this.ReadIncomingDataAsync(cancellationToken);
                 }
             });
 
             var pollTask = Task.Run(async () =>
             {
+                await this.MessageReceivedCallback();
                 await this.ConnectAsync(cancellationToken);
                 await this.HandleSubscribeAsync(cancellationToken);
                 await this.HandleDiscoveryAsync(cancellationToken);
@@ -57,41 +112,33 @@ namespace TwoMQTT.Core.Managers
 
             await Task.WhenAll(readChannelTask, pollTask);
         }
-        protected readonly ILogger<MQTTManager<TData, TCommand>> logger;
-        protected readonly MQTTManagerOptions opts;
-        protected readonly ChannelReader<TData> incoming;
-        protected readonly ChannelWriter<TCommand> outgoing;
-        protected readonly IManagedMqttClient client;
-        protected readonly ConcurrentDictionary<string, string> knownMessages;
 
         /// <summary>
         /// Log settings specific to the MQTT client
         /// </summary>
-        protected virtual void LogSettings()
-        {
-            this.logger.LogInformation(
-                $"Broker:            {this.opts.Broker}\n" +
-                $"TopicPrefix:       {this.opts.TopicPrefix}\n" +
-                $"DiscoveryEnabled:  {this.opts.DiscoveryEnabled}\n" +
-                $"DiscoveryPrefix:   {this.opts.DiscoveryPrefix}\n" +
-                $"DiscoveryName:     {this.opts.DiscoveryName}\n" +
+        protected virtual void LogSettings() =>
+            this.Logger.LogInformation(
+                $"Broker:            {this.Opts.Broker}\n" +
+                $"TopicPrefix:       {this.Opts.TopicPrefix}\n" +
+                $"DiscoveryEnabled:  {this.Opts.DiscoveryEnabled}\n" +
+                $"DiscoveryPrefix:   {this.Opts.DiscoveryPrefix}\n" +
+                $"DiscoveryName:     {this.Opts.DiscoveryName}\n" +
                 $""
             );
-        }
 
         /// <summary>
         /// Connect to the MQTT broker
         /// </summary>
         protected Task ConnectAsync(CancellationToken cancellationToken = default)
         {
-            return this.client.StartAsync(new ManagedMqttClientOptionsBuilder()
+            return this.Client.StartAsync(new ManagedMqttClientOptionsBuilder()
                 .WithAutoReconnectDelay(TimeSpan.FromSeconds(5))
                 .WithClientOptions(
                     new MqttClientOptionsBuilder()
-                        .WithTcpServer(opts.Broker)
+                        .WithTcpServer(Opts.Broker)
                         .WithWillMessage(new MqttApplicationMessageBuilder()
-                            .WithTopic($"{opts.TopicPrefix}/status")
-                            .WithPayload("offline")
+                            .WithTopic($"{Opts.TopicPrefix}/status")
+                            .WithPayload(Const.OFFLINE)
                             .WithExactlyOnceQoS()
                             .WithRetainFlag()
                             .Build()
@@ -103,31 +150,58 @@ namespace TwoMQTT.Core.Managers
         }
 
         /// <summary>
+        /// Setup the callback for receiving messages from the MQTT broker.
+        /// </summary>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        protected virtual Task MessageReceivedCallback(CancellationToken cancellationToken = default)
+        {
+            this.Client.ApplicationMessageReceivedHandler = new MqttApplicationMessageReceivedHandlerDelegate(e =>
+                {
+                    this.HandleIncomingMessageAsync(e, cancellationToken);
+                });
+
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
         /// Subscribe to topics specific to the source.
         /// Topics may include incoming commands, the ability to manually query the source, etc.
         /// </summary>
-        protected virtual Task HandleSubscribeAsync(CancellationToken cancellationToken = default)
-        {
-            return Task.CompletedTask;
-        }
+        protected virtual Task HandleSubscribeAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 
         /// <summary>
-        /// Publish MQTT discovery messages specific to the source
+        /// Publish MQTT discovery messages specific to the source.
         /// </summary>
-        protected virtual Task HandleDiscoveryAsync(CancellationToken cancellationToken = default) 
+        protected virtual Task HandleDiscoveryAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+        /// <summary>
+        /// Handle incoming MQTT messages from the MQTT broker.
+        /// </summary>
+        protected virtual Task HandleIncomingMessageAsync(MqttApplicationMessageReceivedEventArgs e,
+            CancellationToken cancellationToken = default)
         {
+            this.Logger.LogInformation(
+                $"Received message via MQTT\n" +
+                $"* Topic = {e.ApplicationMessage.Topic}\n" +
+                $"* Payload = {Encoding.UTF8.GetString(e.ApplicationMessage.Payload)}\n" +
+                $"* QoS = {e.ApplicationMessage.QualityOfServiceLevel}\n" +
+                $"* Retain = {e.ApplicationMessage.Retain}\n" +
+                $""
+            );
+
             return Task.CompletedTask;
         }
 
         /// <summary>
-        /// Publish LWT messages that indicate a source is online
+        /// Publish LWT messages that indicate a source is online.
         /// </summary>
         protected Task PublishOnlineStatus(CancellationToken cancellationToken = default)
         {
-            return client.PublishAsync(
+            return Client.PublishAsync(
                 new MqttApplicationMessageBuilder()
-                    .WithTopic($"{opts.TopicPrefix}/status")
-                    .WithPayload("online")
+                    .WithTopic($"{Opts.TopicPrefix}/status")
+                    .WithPayload(Const.ONLINE)
                     .WithExactlyOnceQoS()
                     .WithRetainFlag()
                     .Build(),
@@ -136,9 +210,10 @@ namespace TwoMQTT.Core.Managers
         }
 
         /// <summary>
-        /// Publish discovery messages that indicate a source is available
+        /// Publish discovery messages that indicate a source is available.
         /// </summary>
-        protected async Task PublishDiscoveryAsync(string slug, string sensor, string sensorType, MQTTDiscovery discoveryMsg, CancellationToken cancellationToken = default)
+        protected async Task PublishDiscoveryAsync(string slug, string sensor, string sensorType,
+            MQTTDiscovery discoveryMsg, CancellationToken cancellationToken = default)
         {
             var sensorName = this.Stringify(string.Empty, slug, sensor, '_');
 
@@ -151,28 +226,28 @@ namespace TwoMQTT.Core.Managers
             serializer.Serialize(writer, discoveryMsg);
 
             var msg = new MqttApplicationMessageBuilder()
-                .WithTopic($"{this.opts.DiscoveryPrefix}/{sensorType}/{this.opts.DiscoveryName}/{sensorName}/config")
+                .WithTopic($"{this.Opts.DiscoveryPrefix}/{sensorType}/{this.Opts.DiscoveryName}/{sensorName}/config")
                 .WithPayload(sw.ToString())
                 .WithExactlyOnceQoS()
                 .WithRetainFlag()
                 .Build();
 
-            await this.client.PublishAsync(msg, cancellationToken);
+            await this.Client.PublishAsync(msg, cancellationToken);
         }
 
         /// <summary>
-        /// Build an appropriate discovery message
+        /// Build an appropriate discovery message.
         /// </summary>
         public MQTTDiscovery BuildDiscovery(string slug, string sensor, AssemblyName assembly, bool hasCommand)
         {
             return new MQTTDiscovery
             {
-                Name = this.Stringify(this.opts.DiscoveryName, slug, sensor, ' '),
+                Name = this.Stringify(this.Opts.DiscoveryName, slug, sensor, ' '),
                 AvailabilityTopic = this.AvailabilityTopic(),
                 StateTopic = this.StateTopic(slug, sensor),
                 CommandTopic = hasCommand ? this.CommandTopic(slug, sensor) : string.Empty,
-                UniqueId = this.Stringify(this.opts.DiscoveryName, slug, sensor, '.'),
-                Device = new MQTTDiscoveryDevice
+                UniqueId = this.Stringify(this.Opts.DiscoveryName, slug, sensor, '.'),
+                Device = new MQTTDiscovery.DiscoveryDevice
                 {
                     Identifiers = new List<string> { this.AvailabilityTopic() },
                     Name = $"{assembly.Name?.ToLower() ?? "unknown"}2mqtt",
@@ -183,56 +258,89 @@ namespace TwoMQTT.Core.Managers
         }
 
         /// <summary>
-        /// Read incoming messages from the source and publish them appropriately
+        /// Read incoming messages from the source and publish them appropriately.
         /// </summary>
-        protected async Task ReadIncomingAsync(CancellationToken cancellationToken = default)
+        protected async Task ReadIncomingDataAsync(CancellationToken cancellationToken = default)
         {
-            while (!cancellationToken.IsCancellationRequested && await this.incoming.WaitToReadAsync(cancellationToken))
+            while (!cancellationToken.IsCancellationRequested &&
+                await this.IncomingData.WaitToReadAsync(cancellationToken))
             {
-                var item = await this.incoming.ReadAsync(cancellationToken);
-                await this.HandleIncomingAsync(item, cancellationToken);
+                var item = await this.IncomingData.ReadAsync(cancellationToken);
+                await this.HandleIncomingDataAsync(item, cancellationToken);
             }
         }
 
         /// <summary>
-        /// Publish messages based on a source specific input
+        /// Publish messages based on a source specific input.
         /// </summary>
-        protected virtual Task HandleIncomingAsync(TData input, CancellationToken cancellationToken = default)
+        protected virtual Task HandleIncomingDataAsync(TData input, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        /// <summary>
+        /// Publish topics + payloads, retained, depduplicated.
+        /// </summary>
+        protected async Task PublishAsync(string topic, string payload, CancellationToken cancellationToken = default)
         {
-            return Task.CompletedTask;
+            if (this.KnownMessages.ContainsKey(topic) && this.KnownMessages[topic] == payload)
+            {
+                this.Logger.LogDebug($"Duplicate '{payload}' found on '{topic}'");
+                return;
+            }
+
+            this.Logger.LogInformation($"Publishing '{payload}' on '{topic}'");
+            await this.Client.PublishAsync(
+                new MqttApplicationMessageBuilder()
+                    .WithTopic(topic)
+                    .WithPayload(payload)
+                    .WithExactlyOnceQoS()
+                    .WithRetainFlag()
+                    .Build(),
+                cancellationToken
+            );
+
+            this.KnownMessages[topic] = payload;
         }
 
         /// <summary>
-        /// Generate the availability topic
+        /// Convert a boolean to an appropriate on/off string.
         /// </summary>
-        protected string AvailabilityTopic() => $"{this.opts.TopicPrefix}/status";
+        /// <param name="val"></param>
+        /// <returns></returns>
+        protected string BooleanOnOff(bool val) => val ? Const.ON : Const.OFF;
 
         /// <summary>
-        /// Generate the state topic
+        /// Generate the availability topic.
         /// </summary>
-        protected string StateTopic(string slug, string sensor = "") => $"{string.Join('/', new[] { this.Stringify(this.opts.TopicPrefix, slug, sensor, '/'), "state"})}";
+        protected string AvailabilityTopic() => $"{this.Opts.TopicPrefix}/status";
+
+        /// <summary>
+        /// Generate the state topic.
+        /// </summary>
+        protected string StateTopic(string slug, string sensor = "") =>
+            $"{string.Join('/', new[] { this.Stringify(this.Opts.TopicPrefix, slug, sensor, '/'), "state" })}";
 
 
         /// <summary>
-        /// Generate the command topic
+        /// Generate the command topic.
         /// </summary>
-        protected string CommandTopic(string slug, string sensor = "") => $"{string.Join('/', new[] { this.Stringify(this.opts.TopicPrefix, slug, sensor, '/'), "command"})}";
+        protected string CommandTopic(string slug, string sensor = "") =>
+            $"{string.Join('/', new[] { this.Stringify(this.Opts.TopicPrefix, slug, sensor, '/'), "command" })}";
 
         /// <summary>
-        /// Generate a messy string
+        /// Generate a messy string.
         /// </summary>
         protected string Stringify(string prefix, string slug, string sensor, char seperator)
         {
             var pieces = new List<string>();
 
-            if (!string.IsNullOrEmpty(prefix)) 
+            if (!string.IsNullOrEmpty(prefix))
             {
                 pieces.Add(prefix);
             }
 
             pieces.Add(slug);
 
-            if (!string.IsNullOrEmpty(sensor)) 
+            if (!string.IsNullOrEmpty(sensor))
             {
                 pieces.Add(sensor);
             }

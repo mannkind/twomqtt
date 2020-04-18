@@ -1,5 +1,8 @@
 namespace TwoMQTT.Core.Models
 {
+    /// <summary>
+    /// An class representing options required to communicate properly with MQTT.
+    /// </summary>
     public class MQTTManagerOptions
     {
         public string Broker { get; set; } = "test.mosquitto.org";

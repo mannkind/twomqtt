@@ -12,6 +12,7 @@
   ],
   "postCreateCommand": "mkdir -p ~/.ssh && cp -r ~/.ssh-localhost/* ~/.ssh && chmod 700 ~/.ssh && chmod 600 ~/.ssh/*",
   "extensions": [
-    "ms-dotnettools.csharp"
+    "ms-dotnettools.csharp",
+    "k--kato.docomment"
   ]
 }
