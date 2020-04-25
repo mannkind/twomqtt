@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
-using System.Text;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -158,7 +157,9 @@ namespace TwoMQTT.Core.Managers
         {
             this.Client.ApplicationMessageReceivedHandler = new MqttApplicationMessageReceivedHandlerDelegate(e =>
                 {
-                    this.HandleIncomingMessageAsync(e, cancellationToken);
+                    var topic = e.ApplicationMessage.Topic;
+                    var payload = e.ApplicationMessage.ConvertPayloadToString();
+                    this.HandleIncomingMessageAsync(topic, payload, cancellationToken);
                 });
 
             return Task.CompletedTask;
@@ -178,15 +179,13 @@ namespace TwoMQTT.Core.Managers
         /// <summary>
         /// Handle incoming MQTT messages from the MQTT broker.
         /// </summary>
-        protected virtual Task HandleIncomingMessageAsync(MqttApplicationMessageReceivedEventArgs e,
+        protected virtual Task HandleIncomingMessageAsync(string topic, string payload,
             CancellationToken cancellationToken = default)
         {
             this.Logger.LogInformation(
                 $"Received message via MQTT\n" +
-                $"* Topic = {e.ApplicationMessage.Topic}\n" +
-                $"* Payload = {Encoding.UTF8.GetString(e.ApplicationMessage.Payload)}\n" +
-                $"* QoS = {e.ApplicationMessage.QualityOfServiceLevel}\n" +
-                $"* Retain = {e.ApplicationMessage.Retain}\n" +
+                $"* Topic = {topic}\n" +
+                $"* Payload = {payload}\n" +
                 $""
             );
 
@@ -198,9 +197,9 @@ namespace TwoMQTT.Core.Managers
         /// </summary>
         protected Task PublishOnlineStatus(CancellationToken cancellationToken = default)
         {
-            return Client.PublishAsync(
+            return this.Client.PublishAsync(
                 new MqttApplicationMessageBuilder()
-                    .WithTopic($"{Opts.TopicPrefix}/status")
+                    .WithTopic($"{this.Opts.TopicPrefix}/status")
                     .WithPayload(Const.ONLINE)
                     .WithExactlyOnceQoS()
                     .WithRetainFlag()
@@ -275,6 +274,21 @@ namespace TwoMQTT.Core.Managers
         /// </summary>
         protected virtual Task HandleIncomingDataAsync(TData input, CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
+
+        /// <summary>
+        /// Subscribe topics
+        /// </summary>
+        protected async Task SubscribeAsync(IEnumerable<string> filters, CancellationToken cancellationToken = default)
+        {
+            var topics = new List<TopicFilter>();
+            foreach (var filter in filters)
+            {
+                var topic = new TopicFilterBuilder().WithTopic(filter).Build();
+                topics.Add(topic);
+            }
+
+            await this.Client.SubscribeAsync(topics);
+        }
 
         /// <summary>
         /// Publish topics + payloads, retained, depduplicated.
