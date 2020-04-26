@@ -1,10 +1,10 @@
+using System;
+using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
-using System.Threading;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using System.Collections.Generic;
-using System;
 
 namespace TwoMQTT.Core.Managers
 {
