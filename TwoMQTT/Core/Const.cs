@@ -28,6 +28,11 @@ namespace TwoMQTT.Core
         public const string SENSOR = "sensor";
 
         /// <summary>
+        /// Home Assistant's default word to describe a generic switch
+        /// </summary>
+        public const string SWITCH = "switch";
+
+        /// <summary>
         /// Home Assistant's default word to describe a sensor with only two values
         /// </summary>
         public const string BINARY_SENSOR = "binary_sensor";

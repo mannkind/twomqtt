@@ -30,12 +30,13 @@ namespace TwoMQTT.Core.Managers
         /// <param name="questions"></param>
         /// <param name="pollingInterval"></param>
         /// <param name="sourceDAO"></param>
+        /// <param name="internalSettings"></param>
         /// <returns></returns>
         public HTTPPollingManager(ILogger<HTTPPollingManager<TQuestion, TSourceFetchResponse, TSourceSendResponse, TSharedData, TSharedCommand>> logger,
             ChannelWriter<TSharedData> outgoingData, ChannelReader<TSharedCommand> incomingCommand,
             IEnumerable<TQuestion> questions, TimeSpan pollingInterval,
-            IHTTPSourceDAO<TQuestion, TSharedCommand, TSourceFetchResponse, TSourceSendResponse> sourceDAO) :
-            base(logger, outgoingData, incomingCommand, questions, pollingInterval)
+            IHTTPSourceDAO<TQuestion, TSharedCommand, TSourceFetchResponse, TSourceSendResponse> sourceDAO, string internalSettings) :
+            base(logger, outgoingData, incomingCommand, questions, pollingInterval, internalSettings)
         {
             this.SourceDAO = sourceDAO;
         }

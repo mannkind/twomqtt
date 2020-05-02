@@ -28,15 +28,17 @@ namespace TwoMQTT.Core.Managers
         /// <param name="incomingCommand"></param>
         /// <param name="questions"></param>
         /// <param name="pollingInterval"></param>
+        /// <param name="internalSettings"></param>
         public PollingManager(ILogger<PollingManager<TQuestion, TSourceFetchResponse, TSourceSendResponse, TSharedData, TSharedCommand>> logger,
             ChannelWriter<TSharedData> outgoingData, ChannelReader<TSharedCommand> incomingCommand,
-            IEnumerable<TQuestion> questions, TimeSpan pollingInterval)
+            IEnumerable<TQuestion> questions, TimeSpan pollingInterval, string internalSettings)
         {
             this.Logger = logger;
             this.OutgoingData = outgoingData;
             this.IncomingCommands = incomingCommand;
             this.Questions = questions;
             this.PollingInterval = pollingInterval;
+            this.Logger.LogInformation(internalSettings ?? string.Empty);
         }
 
         /// <summary>
@@ -64,7 +66,6 @@ namespace TwoMQTT.Core.Managers
         /// </summary>
         protected readonly TimeSpan PollingInterval;
 
-
         /// <summary>
         /// Executed as an IHostedService as a background job.
         /// </summary>
@@ -72,8 +73,6 @@ namespace TwoMQTT.Core.Managers
         /// <returns></returns>
         protected override async Task ExecuteAsync(CancellationToken cancellationToken = default)
         {
-            this.LogSettings();
-
             // Listen for incoming messages
             var readChannelTask = Task.Run(async () =>
             {
@@ -98,11 +97,6 @@ namespace TwoMQTT.Core.Managers
 
             await Task.WhenAll(readChannelTask, pollTask);
         }
-
-        /// <summary>
-        /// Log settings specific to the source client.
-        /// </summary>
-        protected abstract void LogSettings();
 
         /// <summary>
         /// Read incoming commands and send them to the source appropriately.

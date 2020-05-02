@@ -35,7 +35,8 @@ namespace TwoMQTT.Core.Managers
         /// <param name="outgoingCommand"></param>
         /// <param name="questions"></param>
         public MQTTManager(ILogger<MQTTManager<TQuestion, TData, TCommand>> logger, IOptions<MQTTManagerOptions> opts,
-            ChannelReader<TData> incomingData, ChannelWriter<TCommand> outgoingCommand, IEnumerable<TQuestion> questions)
+            ChannelReader<TData> incomingData, ChannelWriter<TCommand> outgoingCommand, IEnumerable<TQuestion> questions,
+            string internalSettings)
         {
             this.Logger = logger;
             this.Opts = opts.Value;
@@ -44,6 +45,14 @@ namespace TwoMQTT.Core.Managers
             this.Client = new MqttFactory().CreateManagedMqttClient();
             this.KnownMessages = new ConcurrentDictionary<string, string>();
             this.Questions = questions;
+            this.Logger.LogInformation(
+                $"Broker:            {opts.Value.Broker}\n" +
+                $"TopicPrefix:       {opts.Value.TopicPrefix}\n" +
+                $"DiscoveryEnabled:  {opts.Value.DiscoveryEnabled}\n" +
+                $"DiscoveryPrefix:   {opts.Value.DiscoveryPrefix}\n" +
+                $"DiscoveryName:     {opts.Value.DiscoveryName}\n" +
+                $"{internalSettings}"
+            );
         }
 
         /// <summary>
@@ -89,8 +98,6 @@ namespace TwoMQTT.Core.Managers
         /// <returns></returns>
         protected override async Task ExecuteAsync(CancellationToken cancellationToken = default)
         {
-            this.LogSettings();
-
             // Listen for incoming messages
             var readChannelTask = Task.Run(async () =>
             {
@@ -111,19 +118,6 @@ namespace TwoMQTT.Core.Managers
 
             await Task.WhenAll(readChannelTask, pollTask);
         }
-
-        /// <summary>
-        /// Log settings specific to the MQTT client
-        /// </summary>
-        protected virtual void LogSettings() =>
-            this.Logger.LogInformation(
-                $"Broker:            {this.Opts.Broker}\n" +
-                $"TopicPrefix:       {this.Opts.TopicPrefix}\n" +
-                $"DiscoveryEnabled:  {this.Opts.DiscoveryEnabled}\n" +
-                $"DiscoveryPrefix:   {this.Opts.DiscoveryPrefix}\n" +
-                $"DiscoveryName:     {this.Opts.DiscoveryName}\n" +
-                $""
-            );
 
         /// <summary>
         /// Connect to the MQTT broker
