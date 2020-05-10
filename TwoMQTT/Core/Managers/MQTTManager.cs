@@ -109,11 +109,9 @@ namespace TwoMQTT.Core.Managers
 
             var pollTask = Task.Run(async () =>
             {
-                await this.MessageReceivedCallback();
+                await Task.WhenAll(this.ConnectedCallback(cancellationToken), this.MessageReceivedCallback(cancellationToken));
                 await this.ConnectAsync(cancellationToken);
-                await this.HandleSubscribeAsync(cancellationToken);
-                await this.HandleDiscoveryAsync(cancellationToken);
-                await this.PublishOnlineStatus(cancellationToken);
+                await Task.WhenAll(this.HandleSubscribeAsync(cancellationToken), this.HandleDiscoveryAsync(cancellationToken));
             });
 
             await Task.WhenAll(readChannelTask, pollTask);
@@ -143,18 +141,41 @@ namespace TwoMQTT.Core.Managers
         }
 
         /// <summary>
+        /// Setup the callback for connecting to the MQTT broker.
+        /// </summary>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        protected virtual Task ConnectedCallback(CancellationToken cancellationToken = default)
+        {
+            this.Client.UseConnectedHandler(async e =>
+            {
+                await this.Client.PublishAsync(
+                    new MqttApplicationMessageBuilder()
+                        .WithTopic($"{this.Opts.TopicPrefix}/status")
+                        .WithPayload(Const.ONLINE)
+                        .WithExactlyOnceQoS()
+                        .WithRetainFlag()
+                        .Build(),
+                    cancellationToken
+                );
+            });
+
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
         /// Setup the callback for receiving messages from the MQTT broker.
         /// </summary>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         protected virtual Task MessageReceivedCallback(CancellationToken cancellationToken = default)
         {
-            this.Client.ApplicationMessageReceivedHandler = new MqttApplicationMessageReceivedHandlerDelegate(e =>
-                {
-                    var topic = e.ApplicationMessage.Topic;
-                    var payload = e.ApplicationMessage.ConvertPayloadToString();
-                    this.HandleIncomingMessageAsync(topic, payload, cancellationToken);
-                });
+            this.Client.UseApplicationMessageReceivedHandler(async e =>
+            {
+                var topic = e.ApplicationMessage.Topic;
+                var payload = e.ApplicationMessage.ConvertPayloadToString();
+                await this.HandleIncomingMessageAsync(topic, payload, cancellationToken);
+            });
 
             return Task.CompletedTask;
         }
@@ -184,22 +205,6 @@ namespace TwoMQTT.Core.Managers
             );
 
             return Task.CompletedTask;
-        }
-
-        /// <summary>
-        /// Publish LWT messages that indicate a source is online.
-        /// </summary>
-        protected Task PublishOnlineStatus(CancellationToken cancellationToken = default)
-        {
-            return this.Client.PublishAsync(
-                new MqttApplicationMessageBuilder()
-                    .WithTopic($"{this.Opts.TopicPrefix}/status")
-                    .WithPayload(Const.ONLINE)
-                    .WithExactlyOnceQoS()
-                    .WithRetainFlag()
-                    .Build(),
-                cancellationToken
-            );
         }
 
         /// <summary>
