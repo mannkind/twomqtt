@@ -107,7 +107,11 @@ namespace TwoMQTT.Core.Managers
                 await this.IncomingCommands.WaitToReadAsync(cancellationToken))
             {
                 var item = await this.IncomingCommands.ReadAsync(cancellationToken);
+
+                this.Logger.LogDebug($"Received incoming command {item}");
+                this.Logger.LogDebug($"Started handling {item}");
                 await this.HandleIncomingCommandAsync(item, cancellationToken);
+                this.Logger.LogDebug($"Finished handling {item}");
             }
         }
 
@@ -122,10 +126,11 @@ namespace TwoMQTT.Core.Managers
         /// </summary>
         protected virtual async Task PollAsync(CancellationToken cancellationToken = default)
         {
+            this.Logger.LogDebug($"Started Polling");
             var tasks = new List<Task<TSourceFetchResponse?>>();
             foreach (var key in this.Questions)
             {
-                this.Logger.LogInformation($"Looking up {key}");
+                this.Logger.LogDebug($"Looking up {key}");
                 tasks.Add(this.FetchOneAsync(key, cancellationToken));
             }
 
@@ -137,9 +142,10 @@ namespace TwoMQTT.Core.Managers
                     continue;
                 }
 
-                this.Logger.LogInformation($"Found {result}");
+                this.Logger.LogDebug($"Found {result}");
                 await this.OutgoingData.WriteAsync(this.MapResponse(result), cancellationToken);
             }
+            this.Logger.LogDebug($"Finished Polling");
         }
 
         /// <summary>

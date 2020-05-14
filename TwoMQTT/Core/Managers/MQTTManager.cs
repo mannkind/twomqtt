@@ -264,7 +264,10 @@ namespace TwoMQTT.Core.Managers
                 await this.IncomingData.WaitToReadAsync(cancellationToken))
             {
                 var item = await this.IncomingData.ReadAsync(cancellationToken);
+                this.Logger.LogDebug($"Received incoming data {item}");
+                this.Logger.LogDebug($"Started handling {item}");
                 await this.HandleIncomingDataAsync(item, cancellationToken);
+                this.Logger.LogDebug($"Finished handling {item}");
             }
         }
 
@@ -279,14 +282,18 @@ namespace TwoMQTT.Core.Managers
         /// </summary>
         protected async Task SubscribeAsync(IEnumerable<string> filters, CancellationToken cancellationToken = default)
         {
+            this.Logger.LogDebug($"Started subscribing to topics");
             var topics = new List<TopicFilter>();
             foreach (var filter in filters)
             {
+                this.Logger.LogDebug($"Found topic {filter}");
                 var topic = new TopicFilterBuilder().WithTopic(filter).Build();
                 topics.Add(topic);
             }
 
+            this.Logger.LogDebug($"Found {topics.Count} topics");
             await this.Client.SubscribeAsync(topics);
+            this.Logger.LogDebug($"Finished subscribing to topics");
         }
 
         /// <summary>
