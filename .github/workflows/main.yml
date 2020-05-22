@@ -41,7 +41,9 @@ jobs:
           path: output/${{ env.BUILD_VERSION }}
 
       - name: Upload to NuGet
-        run: dotnet nuget push output/${{ env.BUILD_VERSION }} -k ${{ secrets.NUGET_TOKEN }} -s https://api.nuget.org/v3/index.json
+        run: |
+          dotnet nuget push output/${{ env.BUILD_VERSION }} -k ${{ secrets.NUGET_TOKEN }} -s https://api.nuget.org/v3/index.json
+          sleep 10
 
       - name: Unilst from NuGet
         env:
