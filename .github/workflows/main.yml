@@ -31,22 +31,24 @@ jobs:
         run: dotnet pack -c Debug -o output --version-suffix="${{ env.GITHUB_REF_SLUG }}" TwoMQTT
         if: github.event_name == 'push' && github.ref != 'refs/heads/master'
 
-      - name: Set BUILD_VERSION
-        run: echo "::set-env name=BUILD_VERSION::$(ls output)"
+      - name: Set PACKAGE_FILE
+        run: echo "::set-env name=PACKAGE_FILE::$(ls output)"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v1
         with:
-          name: ${{ env.BUILD_VERSION }}
-          path: output/${{ env.BUILD_VERSION }}
+          name: ${{ env.PACKAGE_FILE }}
+          path: output/${{ env.PACKAGE_FILE }}
 
       - name: Upload to NuGet
-        run: |
-          dotnet nuget push output/${{ env.BUILD_VERSION }} -k ${{ secrets.NUGET_TOKEN }} -s https://api.nuget.org/v3/index.json
-          sleep 10
+        run: dotnet nuget push output/${{ env.PACKAGE_FILE }} -k ${{ secrets.NUGET_TOKEN }} -s https://api.nuget.org/v3/index.json
 
       - name: Unilst from NuGet
         env:
-          BUILD_VERSION: ${{ env.BUILD_VERSION }}
-          BUILD_PACKAGE: "TwoMQTT"
-        run: dotnet nuget delete ${BUILD_PACKAGE} ${BUILD_VERSION/$BUILD_PACKAGE./} --non-interactive -k ${{ secrets.NUGET_TOKEN }} -s https://api.nuget.org/v3/index.json
+          PACKAGE_FILE: ${{ env.PACKAGE_FILE }}
+          PACKAGENAME: "TwoMQTT"
+          EXTENSION: ".nupkg"
+        run: |
+          VERSION_EXTENSION=${PACKAGE_FILE/$PACKAGENAME./}
+          VERSION=${VERSION_EXTENSION/$EXTENSION/}
+          dotnet nuget delete ${PACKAGENAME} ${VERSION} --non-interactive -k ${{ secrets.NUGET_TOKEN }} -s https://api.nuget.org/v3/index.json
