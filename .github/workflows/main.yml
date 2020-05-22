@@ -42,3 +42,9 @@ jobs:
 
       - name: Upload to NuGet
         run: dotnet nuget push output/${{ env.BUILD_VERSION }} -k ${{ secrets.NUGET_TOKEN }} -s https://api.nuget.org/v3/index.json
+
+      - name: Unilst from NuGet
+        env:
+          BUILD_VERSION: ${{ env.BUILD_VERSION }}
+          BUILD_PACKAGE: "TwoMQTT"
+        run: dotnet nuget delete ${BUILD_PACKAGE} ${BUILD_VERSION/$BUILD_PACKAGE./} -k ${{ secrets.NUGET_TOKEN }} -s https://api.nuget.org/v3/index.json
