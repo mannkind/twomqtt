@@ -46,9 +46,9 @@ jobs:
       - name: Unilst from NuGet
         env:
           PACKAGE_FILE: ${{ env.PACKAGE_FILE }}
-          PACKAGENAME: "TwoMQTT"
+          PACKAGE: "TwoMQTT"
           EXTENSION: ".nupkg"
         run: |
-          VERSION_EXTENSION=${PACKAGE_FILE/$PACKAGENAME./}
+          VERSION_EXTENSION=${PACKAGE_FILE/$PACKAGE./}
           VERSION=${VERSION_EXTENSION/$EXTENSION/}
-          dotnet nuget delete ${PACKAGENAME} ${VERSION} --non-interactive -k ${{ secrets.NUGET_TOKEN }} -s https://api.nuget.org/v3/index.json
+          dotnet nuget delete ${PACKAGE} ${VERSION} --non-interactive -k ${{ secrets.NUGET_TOKEN }} -s https://api.nuget.org/v3/index.json
