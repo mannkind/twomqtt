@@ -47,4 +47,4 @@ jobs:
         env:
           BUILD_VERSION: ${{ env.BUILD_VERSION }}
           BUILD_PACKAGE: "TwoMQTT"
-        run: dotnet nuget delete ${BUILD_PACKAGE} ${BUILD_VERSION/$BUILD_PACKAGE./} -k ${{ secrets.NUGET_TOKEN }} -s https://api.nuget.org/v3/index.json
+        run: dotnet nuget delete ${BUILD_PACKAGE} ${BUILD_VERSION/$BUILD_PACKAGE./} --non-interactive -k ${{ secrets.NUGET_TOKEN }} -s https://api.nuget.org/v3/index.json
