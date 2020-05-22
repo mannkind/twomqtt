@@ -12,8 +12,8 @@ namespace TwoMQTT.Core.DataAccess
     /// <typeparam name="TCommand"></typeparam>
     /// <typeparam name="TFetchResponse"></typeparam>
     /// <typeparam name="TSendResponse"></typeparam>
-    public abstract class HTTPSourceDAO<TQuestion, TCommand, TFetchResponse, TSendResponse> :
-        IHTTPSourceDAO<TQuestion, TCommand, TFetchResponse, TSendResponse>
+    public abstract class SourceDAO<TQuestion, TCommand, TFetchResponse, TSendResponse> :
+        ISourceDAO<TQuestion, TCommand, TFetchResponse, TSendResponse>
         where TFetchResponse : class
         where TSendResponse : class
     {
@@ -22,11 +22,9 @@ namespace TwoMQTT.Core.DataAccess
         /// </summary>
         /// <param name="logger"></param>
         /// <param name="httpClientFactory"></param>
-        public HTTPSourceDAO(ILogger<HTTPSourceDAO<TQuestion, TCommand, TFetchResponse, TSendResponse>> logger,
-            IHttpClientFactory httpClientFactory)
+        public SourceDAO(ILogger<SourceDAO<TQuestion, TCommand, TFetchResponse, TSendResponse>> logger)
         {
             this.Logger = logger;
-            this.Client = httpClientFactory.CreateClient();
         }
 
         /// <inheritdoc />
@@ -40,12 +38,6 @@ namespace TwoMQTT.Core.DataAccess
         /// <summary>
         /// The logger used internally.
         /// </summary>
-        protected readonly ILogger<HTTPSourceDAO<TQuestion, TCommand, TFetchResponse, TSendResponse>> Logger;
-
-        /// <summary>
-        /// The HTTP client used to access the source.
-        /// </summary>
-        protected readonly HttpClient Client;
-
+        protected readonly ILogger<SourceDAO<TQuestion, TCommand, TFetchResponse, TSendResponse>> Logger;
     }
 }

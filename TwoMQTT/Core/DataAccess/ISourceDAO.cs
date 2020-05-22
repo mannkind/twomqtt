@@ -10,7 +10,7 @@ namespace TwoMQTT.Core.DataAccess
     /// <typeparam name="TCommand"></typeparam>
     /// <typeparam name="TFetchResponse"></typeparam>
     /// <typeparam name="TSendResponse"></typeparam>
-    public interface IHTTPSourceDAO<TQuestion, TCommand, TFetchResponse, TSendResponse>
+    public interface ISourceDAO<TQuestion, TCommand, TFetchResponse, TSendResponse>
         where TFetchResponse : class
         where TSendResponse : class
     {

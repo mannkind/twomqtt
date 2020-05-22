@@ -1,18 +1,22 @@
 using System;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
+
 namespace TwoMQTT.Core
 {
     /// <summary>
     /// A class representing a console program.
     /// </summary>
-    public abstract class ConsoleProgram
+    public abstract class ConsoleProgram<TData, TCommand, TSource, TSink>
+        where TSource : class, IHostedService
+        where TSink : class, IHostedService
     {
         /// <summary>
         /// Initializes a new instance of the HTTPSourceDAO class.
@@ -84,7 +88,18 @@ namespace TwoMQTT.Core
                 })
                 .ConfigureServices((hostContext, services) =>
                 {
+
+                    var data = Channel.CreateUnbounded<TData>();
+                    var command = Channel.CreateUnbounded<TCommand>();
+
                     services.AddOptions();
+                    services.AddSingleton<ChannelReader<TData>>(x => data.Reader);
+                    services.AddSingleton<ChannelWriter<TData>>(x => data.Writer);
+                    services.AddSingleton<ChannelReader<TCommand>>(x => command.Reader);
+                    services.AddSingleton<ChannelWriter<TCommand>>(x => command.Writer);
+                    services.AddHostedService<TSource>();
+                    services.AddHostedService<TSink>();
+
                     this.ConfigureServices(hostContext, services);
                 })
                 .ConfigureLogging((hostingContext, logging) =>

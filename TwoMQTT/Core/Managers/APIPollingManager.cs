@@ -9,14 +9,14 @@ using TwoMQTT.Core.DataAccess;
 namespace TwoMQTT.Core.Managers
 {
     /// <summary>
-    /// An abstract class representing a managed way to poll an source via HTTP.
+    /// An abstract class representing a managed way to poll an source via an API.
     /// </summary>
     /// <typeparam name="TQuestion"></typeparam>
     /// <typeparam name="TSourceFetchResponse"></typeparam>
     /// <typeparam name="TSourceSendResponse"></typeparam>
     /// <typeparam name="TSharedData"></typeparam>
     /// <typeparam name="TSharedCommand"></typeparam>
-    public abstract class HTTPPollingManager<TQuestion, TSourceFetchResponse, TSourceSendResponse, TSharedData, TSharedCommand> :
+    public abstract class APIPollingManager<TQuestion, TSourceFetchResponse, TSourceSendResponse, TSharedData, TSharedCommand> :
         PollingManager<TQuestion, TSourceFetchResponse, TSourceSendResponse, TSharedData, TSharedCommand>
         where TSourceFetchResponse : class
         where TSourceSendResponse : class
@@ -32,10 +32,10 @@ namespace TwoMQTT.Core.Managers
         /// <param name="sourceDAO"></param>
         /// <param name="internalSettings"></param>
         /// <returns></returns>
-        public HTTPPollingManager(ILogger<HTTPPollingManager<TQuestion, TSourceFetchResponse, TSourceSendResponse, TSharedData, TSharedCommand>> logger,
+        public APIPollingManager(ILogger<APIPollingManager<TQuestion, TSourceFetchResponse, TSourceSendResponse, TSharedData, TSharedCommand>> logger,
             ChannelWriter<TSharedData> outgoingData, ChannelReader<TSharedCommand> incomingCommand,
             IEnumerable<TQuestion> questions, TimeSpan pollingInterval,
-            IHTTPSourceDAO<TQuestion, TSharedCommand, TSourceFetchResponse, TSourceSendResponse> sourceDAO, string internalSettings) :
+            ISourceDAO<TQuestion, TSharedCommand, TSourceFetchResponse, TSourceSendResponse> sourceDAO, string internalSettings) :
             base(logger, outgoingData, incomingCommand, questions, pollingInterval, internalSettings)
         {
             this.SourceDAO = sourceDAO;
@@ -44,7 +44,7 @@ namespace TwoMQTT.Core.Managers
         /// <summary>
         /// The DAO for interacting with the source.
         /// </summary>
-        protected readonly IHTTPSourceDAO<TQuestion, TSharedCommand, TSourceFetchResponse, TSourceSendResponse> SourceDAO;
+        protected readonly ISourceDAO<TQuestion, TSharedCommand, TSourceFetchResponse, TSourceSendResponse> SourceDAO;
 
         /// <summary>
         /// Send commands to the source.
