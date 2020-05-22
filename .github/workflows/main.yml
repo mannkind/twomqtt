@@ -34,8 +34,11 @@ jobs:
       - name: Set BUILD_VERSION
         run: echo "::set-env name=BUILD_VERSION::$(ls output)"
 
-      - name: Push Package (Non-Master)
+      - name: Upload Artifact
         uses: actions/upload-artifact@v1
         with:
           name: ${{ env.BUILD_VERSION }}
           path: output/${{ env.BUILD_VERSION }}
+
+      - name: Package (Non-Master)
+        run: dotnet nuget push output/${{ env.BUILD_VERSION }} -k ${{ secrets.NUGET_TOKEN }} -s https://api.nuget.org/v3/index.json
