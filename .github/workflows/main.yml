@@ -19,7 +19,7 @@ jobs:
       - name: Set up dotnet
         uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: '3.1.100' # SDK Version to use.
+          dotnet-version: '3.1.201'
 
       - name: Check out code
         uses: actions/checkout@v1
@@ -58,3 +58,15 @@ jobs:
           VERSION_EXTENSION=${PACKAGE_FILE/$PACKAGE./}
           VERSION=${VERSION_EXTENSION/$EXTENSION/}
           dotnet nuget delete ${PACKAGE} ${VERSION} --non-interactive -k ${{ secrets.NUGET_TOKEN }} -s https://api.nuget.org/v3/index.json
+
+      - name: Tag and push the git release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUILD_VERSION: ${{ env.BUILD_VERSION }}
+        run: |
+          VERSION_EXTENSION=${PACKAGE_FILE/$PACKAGE./}
+          VERSION=${VERSION_EXTENSION/$EXTENSION/}        
+          git tag -f $VERSION
+          sed -i -e "s/github.com/mannkind:${GITHUB_TOKEN}@github.com/g" .git/config
+          git push --tags
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
