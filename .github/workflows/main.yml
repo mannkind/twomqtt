@@ -56,7 +56,9 @@ jobs:
       - name: Tag and push the git release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BUILD_VERSION: ${{ env.BUILD_VERSION }}
+          PACKAGE_FILE: ${{ env.PACKAGE_FILE }}
+          PACKAGE: "TwoMQTT"
+          EXTENSION: ".nupkg"
         run: |
           VERSION_EXTENSION=${PACKAGE_FILE/$PACKAGE./}
           VERSION=${VERSION_EXTENSION/$EXTENSION/}        
