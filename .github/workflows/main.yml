@@ -1,13 +1,9 @@
 name: Main Workflow
 on:
   push:
-    paths:
-    - 'TwoMQTT/**'
     tags-ignore:
     - "*"
   pull_request:
-    paths:
-    - 'TwoMQTT/**'
 jobs:
   all:
     name: Build, Test, Deploy, Tag
