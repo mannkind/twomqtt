@@ -34,6 +34,16 @@ jobs:
       - name: Set PACKAGE_FILE
         run: echo "::set-env name=PACKAGE_FILE::$(ls output)"
 
+      - name: Set BUILD_VERSION
+        env:
+          PACKAGE_FILE: ${{ env.PACKAGE_FILE }}
+          PACKAGE: "TwoMQTT"
+          EXTENSION: ".nupkg"
+        run: |
+          VERSION_EXTENSION=${PACKAGE_FILE/$PACKAGE./}
+          VERSION=${VERSION_EXTENSION/$EXTENSION/}
+          echo "::set-env name=BUILD_VERSION::${VERSION}"
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v1
         with:
@@ -45,24 +55,17 @@ jobs:
 
       - name: Unilst from NuGet
         env:
-          PACKAGE_FILE: ${{ env.PACKAGE_FILE }}
           PACKAGE: "TwoMQTT"
-          EXTENSION: ".nupkg"
+          BUILD_VERSION: ${{ env.BUILD_VERSION }}
         run: |
-          VERSION_EXTENSION=${PACKAGE_FILE/$PACKAGE./}
-          VERSION=${VERSION_EXTENSION/$EXTENSION/}
-          dotnet nuget delete ${PACKAGE} ${VERSION} --non-interactive -k ${{ secrets.NUGET_TOKEN }} -s https://api.nuget.org/v3/index.json
+          dotnet nuget delete ${PACKAGE} ${BUILD_VERSION} --non-interactive -k ${{ secrets.NUGET_TOKEN }} -s https://api.nuget.org/v3/index.json
 
       - name: Tag and push the git release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PACKAGE_FILE: ${{ env.PACKAGE_FILE }}
-          PACKAGE: "TwoMQTT"
-          EXTENSION: ".nupkg"
+          BUILD_VERSION: ${{ env.BUILD_VERSION }}
         run: |
-          VERSION_EXTENSION=${PACKAGE_FILE/$PACKAGE./}
-          VERSION=${VERSION_EXTENSION/$EXTENSION/}        
-          git tag -f $VERSION
+          git tag -f v${BUILD_VERSION}
           sed -i -e "s/github.com/mannkind:${GITHUB_TOKEN}@github.com/g" .git/config
           git push --tags
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
