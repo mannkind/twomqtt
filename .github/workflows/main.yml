@@ -1,21 +1,72 @@
 name: Main Workflow
 on:
   push:
-    branches:
-      - master
+    paths:
+    - 'TwoMQTT'
+    tags-ignore:
+    - "*"
+  pull_request:
+    paths:
+    - 'TwoMQTT'
 jobs:
   all:
     name: Build, Test, Deploy, Tag
     runs-on: ubuntu-18.04
 
     steps:
-      - name: Check out code into the Go module directory
+      - uses: rlespinasse/github-slug-action@master
+
+      - name: Set up dotnet
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '3.1.201'
+
+      - name: Check out code
         uses: actions/checkout@v1
 
-      - name: Publish to Registry
-        uses: elgohr/Publish-Docker-Github-Action@master
+      - name: Build and test
+        run: |
+          dotnet build -c Release TwoMQTT
+          dotnet test TwoMQTTTest
+
+      - name: Package (Master)
+        run: dotnet pack -c Release -o output TwoMQTT
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+
+      - name: Package (Non-Master)
+        run: dotnet pack -c Debug -o output --version-suffix="${{ env.GITHUB_REF_SLUG }}" TwoMQTT
+        if: github.event_name == 'push' && github.ref != 'refs/heads/master'
+
+      - name: Set PACKAGE_FILE
+        run: echo "::set-env name=PACKAGE_FILE::$(ls output)"
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v1
         with:
-          name: mannkind/twomqtt-dev
-          dockerfile: .devcontainer/Dockerfile
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          name: ${{ env.PACKAGE_FILE }}
+          path: output/${{ env.PACKAGE_FILE }}
+
+      - name: Upload to NuGet
+        run: dotnet nuget push output/${{ env.PACKAGE_FILE }} -k ${{ secrets.NUGET_TOKEN }} -s https://api.nuget.org/v3/index.json
+
+      - name: Unilst from NuGet
+        env:
+          PACKAGE_FILE: ${{ env.PACKAGE_FILE }}
+          PACKAGE: "TwoMQTT"
+          EXTENSION: ".nupkg"
+        run: |
+          VERSION_EXTENSION=${PACKAGE_FILE/$PACKAGE./}
+          VERSION=${VERSION_EXTENSION/$EXTENSION/}
+          dotnet nuget delete ${PACKAGE} ${VERSION} --non-interactive -k ${{ secrets.NUGET_TOKEN }} -s https://api.nuget.org/v3/index.json
+
+      - name: Tag and push the git release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUILD_VERSION: ${{ env.BUILD_VERSION }}
+        run: |
+          VERSION_EXTENSION=${PACKAGE_FILE/$PACKAGE./}
+          VERSION=${VERSION_EXTENSION/$EXTENSION/}        
+          git tag -f $VERSION
+          sed -i -e "s/github.com/mannkind:${GITHUB_TOKEN}@github.com/g" .git/config
+          git push --tags
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
