@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Channels;
@@ -109,9 +110,15 @@ namespace TwoMQTT.Core.Managers
 
             var pollTask = Task.Run(async () =>
             {
-                await Task.WhenAll(this.ConnectedCallback(cancellationToken), this.MessageReceivedCallback(cancellationToken));
+                await Task.WhenAll(
+                    this.ConnectedCallback(cancellationToken),
+                    this.MessageReceivedCallback(cancellationToken)
+                );
                 await this.ConnectAsync(cancellationToken);
-                await Task.WhenAll(this.HandleSubscribeAsync(cancellationToken), this.HandleDiscoveryAsync(cancellationToken));
+                await Task.WhenAll(
+                    this.HandleSubscribeAsync(cancellationToken),
+                    this.HandleDiscoveryAsync(cancellationToken)
+                );
             });
 
             await Task.WhenAll(readChannelTask, pollTask);
@@ -184,12 +191,46 @@ namespace TwoMQTT.Core.Managers
         /// Subscribe to topics specific to the source.
         /// Topics may include incoming commands, the ability to manually query the source, etc.
         /// </summary>
-        protected virtual Task HandleSubscribeAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+        protected virtual Task HandleSubscribeAsync(CancellationToken cancellationToken = default)
+        {
+            var topics = this.Subscriptions() ?? new List<string>();
+            return this.SubscribeAsync(topics, cancellationToken);
+        }
+
+        /// <summary>
+        /// A list of topics to subscribe.
+        /// </summary>
+        /// <typeparam name="string"></typeparam>
+        /// <returns></returns>
+        protected virtual IEnumerable<string> Subscriptions() => new List<string>();
 
         /// <summary>
         /// Publish MQTT discovery messages specific to the source.
         /// </summary>
-        protected virtual Task HandleDiscoveryAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+        protected virtual Task HandleDiscoveryAsync(CancellationToken cancellationToken = default)
+        {
+            if (!this.Opts.DiscoveryEnabled)
+            {
+                return Task.CompletedTask;
+            }
+
+            var discoveries = this.Discoveries() ?? new List<(string, string, string, MQTTDiscovery)>();
+            var tasks = discoveries.Select(x =>
+                this.PublishDiscoveryAsync(x.slug, x.sensor, x.type, x.discovery, cancellationToken)
+            );
+
+            return Task.WhenAll(tasks);
+        }
+
+        /// <summary>
+        /// A list of discoveries to publish.
+        /// </summary>
+        /// <typeparam name="string"></typeparam>
+        /// <typeparam name="string"></typeparam>
+        /// <typeparam name="string"></typeparam>
+        /// <typeparam name="MQTTDiscovery"></typeparam>
+        protected virtual IEnumerable<(string slug, string sensor, string type, MQTTDiscovery discovery)> Discoveries() =>
+            new List<(string, string, string, MQTTDiscovery)>();
 
         /// <summary>
         /// Handle incoming MQTT messages from the MQTT broker.
@@ -283,15 +324,12 @@ namespace TwoMQTT.Core.Managers
         protected async Task SubscribeAsync(IEnumerable<string> filters, CancellationToken cancellationToken = default)
         {
             this.Logger.LogDebug($"Started subscribing to topics");
-            var topics = new List<TopicFilter>();
-            foreach (var filter in filters)
+            var topics = filters.Select(x =>
             {
-                this.Logger.LogDebug($"Found topic {filter}");
-                var topic = new TopicFilterBuilder().WithTopic(filter).Build();
-                topics.Add(topic);
-            }
+                this.Logger.LogDebug($"Found topic {x}");
+                return new TopicFilterBuilder().WithTopic(x).Build();
+            });
 
-            this.Logger.LogDebug($"Found {topics.Count} topics");
             await this.Client.SubscribeAsync(topics);
             this.Logger.LogDebug($"Finished subscribing to topics");
         }
@@ -319,6 +357,17 @@ namespace TwoMQTT.Core.Managers
             );
 
             this.KnownMessages[topic] = payload;
+        }
+
+        protected Task PublishAsync(IEnumerable<(string topic, string payload)> messages, CancellationToken cancellationToken = default)
+        {
+            var tasks = new List<Task>();
+            foreach (var message in messages)
+            {
+                tasks.Add(this.PublishAsync(message.topic, message.payload, cancellationToken));
+            }
+
+            return Task.WhenAll(tasks);
         }
 
         /// <summary>
