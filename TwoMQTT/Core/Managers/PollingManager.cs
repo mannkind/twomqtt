@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -101,6 +102,7 @@ namespace TwoMQTT.Core.Managers
         /// <summary>
         /// Read incoming commands and send them to the source appropriately.
         /// </summary>
+        /// <param name="cancellationToken"></param>
         protected async Task ReadIncomingCommandAsync(CancellationToken cancellationToken = default)
         {
             while (!cancellationToken.IsCancellationRequested &&
@@ -118,24 +120,18 @@ namespace TwoMQTT.Core.Managers
         /// <summary>
         /// Publish commands to the source.
         /// </summary>
+        /// <param name="cancellationToken"></param>
         protected abstract Task HandleIncomingCommandAsync(TSharedCommand item,
             CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Poll the source.
         /// </summary>
+        /// <param name="cancellationToken"></param>
         protected virtual async Task PollAsync(CancellationToken cancellationToken = default)
         {
             this.Logger.LogDebug($"Started Polling");
-            var tasks = new List<Task<TSourceFetchResponse?>>();
-            foreach (var key in this.Questions)
-            {
-                this.Logger.LogDebug($"Looking up {key}");
-                tasks.Add(this.FetchOneAsync(key, cancellationToken));
-            }
-
-            var results = await Task.WhenAll(tasks);
-            foreach (var result in results)
+            await foreach (var result in this.FetchResponseAsync(cancellationToken))
             {
                 if (result == null)
                 {
@@ -146,6 +142,21 @@ namespace TwoMQTT.Core.Managers
                 await this.OutgoingData.WriteAsync(this.MapResponse(result), cancellationToken);
             }
             this.Logger.LogDebug($"Finished Polling");
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        protected virtual async IAsyncEnumerable<TSourceFetchResponse?> FetchResponseAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            foreach (var key in this.Questions)
+            {
+                this.Logger.LogDebug($"Looking up {key}");
+                var result = await this.FetchOneAsync(key, cancellationToken);
+                yield return result;
+            }
         }
 
         /// <summary>
