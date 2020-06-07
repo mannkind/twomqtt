@@ -135,7 +135,7 @@ namespace TwoMQTT.Core.Managers
                     new MqttClientOptionsBuilder()
                         .WithTcpServer(Opts.Broker)
                         .WithWillMessage(new MqttApplicationMessageBuilder()
-                            .WithTopic($"{Opts.TopicPrefix}/status")
+                            .WithTopic(this.AvailabilityTopic())
                             .WithPayload(Const.OFFLINE)
                             .WithExactlyOnceQoS()
                             .WithRetainFlag()
@@ -158,7 +158,7 @@ namespace TwoMQTT.Core.Managers
             {
                 await this.Client.PublishAsync(
                     new MqttApplicationMessageBuilder()
-                        .WithTopic($"{this.Opts.TopicPrefix}/status")
+                        .WithTopic(this.AvailabilityTopic())
                         .WithPayload(Const.ONLINE)
                         .WithExactlyOnceQoS()
                         .WithRetainFlag()
