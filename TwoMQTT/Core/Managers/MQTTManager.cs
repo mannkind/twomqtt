@@ -277,7 +277,7 @@ namespace TwoMQTT.Core.Managers
         /// <summary>
         /// Build an appropriate discovery message.
         /// </summary>
-        public MQTTDiscovery BuildDiscovery(string slug, string sensor, AssemblyName assembly, bool hasCommand)
+        protected MQTTDiscovery BuildDiscovery(string slug, string sensor, AssemblyName assembly, bool hasCommand)
         {
             return new MQTTDiscovery
             {
