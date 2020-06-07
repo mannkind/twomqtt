@@ -33,6 +33,7 @@ jobs:
 
       - name: Set PACKAGE_FILE
         run: echo "::set-env name=PACKAGE_FILE::$(ls output)"
+        if: github.event_name == 'push'
 
       - name: Set BUILD_VERSION
         env:
@@ -43,15 +44,18 @@ jobs:
           VERSION_EXTENSION=${PACKAGE_FILE/$PACKAGE./}
           VERSION=${VERSION_EXTENSION/$EXTENSION/}
           echo "::set-env name=BUILD_VERSION::${VERSION}"
+        if: github.event_name == 'push'
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v1
         with:
           name: ${{ env.PACKAGE_FILE }}
           path: output/${{ env.PACKAGE_FILE }}
+        if: github.event_name == 'push'
 
       - name: Upload to NuGet
         run: dotnet nuget push output/${{ env.PACKAGE_FILE }} -k ${{ secrets.NUGET_TOKEN }} -s https://api.nuget.org/v3/index.json
+        if: github.event_name == 'push'
 
       - name: Unilst from NuGet
         env:
@@ -59,6 +63,7 @@ jobs:
           BUILD_VERSION: ${{ env.BUILD_VERSION }}
         run: |
           dotnet nuget delete ${PACKAGE} ${BUILD_VERSION} --non-interactive -k ${{ secrets.NUGET_TOKEN }} -s https://api.nuget.org/v3/index.json
+        if: github.event_name == 'push'
 
       - name: Tag and push the git release
         env:
