@@ -21,7 +21,8 @@ jobs:
       - name: Build and test
         run: |
           dotnet build -c Release TwoMQTT
-          dotnet test TwoMQTTTest
+          dotnet test --collect:"XPlat Code Coverage" TwoMQTTTest
+          bash <(curl -s https://codecov.io/bash)
 
       - name: Package (Master)
         run: dotnet pack -c Release -o output TwoMQTT

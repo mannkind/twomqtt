@@ -12,7 +12,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MQTTnet;
 using MQTTnet.Client.Options;
-using MQTTnet.Client.Receiving;
 using MQTTnet.Extensions.ManagedClient;
 using Newtonsoft.Json;
 using TwoMQTT.Core.Models;
@@ -36,14 +35,14 @@ namespace TwoMQTT.Core.Managers
         /// <param name="outgoingCommand"></param>
         /// <param name="questions"></param>
         public MQTTManager(ILogger<MQTTManager<TQuestion, TData, TCommand>> logger, IOptions<MQTTManagerOptions> opts,
-            ChannelReader<TData> incomingData, ChannelWriter<TCommand> outgoingCommand, IEnumerable<TQuestion> questions,
-            string internalSettings)
+            IManagedMqttClient client, ChannelReader<TData> incomingData, ChannelWriter<TCommand> outgoingCommand,
+            IEnumerable<TQuestion> questions, string internalSettings)
         {
             this.Logger = logger;
             this.Opts = opts.Value;
             this.IncomingData = incomingData;
             this.OutgoingCommand = outgoingCommand;
-            this.Client = new MqttFactory().CreateManagedMqttClient();
+            this.Client = client;
             this.KnownMessages = new ConcurrentDictionary<string, string>();
             this.Questions = questions;
             this.Logger.LogInformation(
