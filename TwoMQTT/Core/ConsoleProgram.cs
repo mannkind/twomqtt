@@ -7,7 +7,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-
+using MQTTnet;
+using MQTTnet.Extensions.ManagedClient;
 
 namespace TwoMQTT.Core
 {
@@ -93,6 +94,7 @@ namespace TwoMQTT.Core
                     var command = Channel.CreateUnbounded<TCommand>();
 
                     services.AddOptions();
+                    services.AddSingleton<IManagedMqttClient>(x => new MqttFactory().CreateManagedMqttClient());
                     services.AddSingleton<ChannelReader<TData>>(x => data.Reader);
                     services.AddSingleton<ChannelWriter<TData>>(x => data.Writer);
                     services.AddSingleton<ChannelReader<TCommand>>(x => command.Reader);
