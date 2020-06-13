@@ -7,17 +7,24 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using MQTTnet;
 using MQTTnet.Extensions.ManagedClient;
+using TwoMQTT.Core.Utils;
+using TwoMQTT.Core.Interfaces;
+using TwoMQTT.Core.Managers;
+using System.Collections.Generic;
 
 namespace TwoMQTT.Core
 {
     /// <summary>
     /// A class representing a console program.
     /// </summary>
-    public abstract class ConsoleProgram<TData, TCommand, TSource, TSink>
-        where TSource : class, IHostedService
-        where TSink : class, IHostedService
+    public abstract class ConsoleProgram<TData, TCommand, TSourceLiason, TMQTTLiason>
+        where TData : class
+        where TCommand : class
+        where TSourceLiason : class, ISourceLiason<TData, TCommand>
+        where TMQTTLiason : class, IMQTTLiason<TData, TCommand>
     {
         /// <summary>
         /// Initializes a new instance of the HTTPSourceDAO class.
@@ -33,6 +40,12 @@ namespace TwoMQTT.Core
 
             return this.Run(args);
         }
+
+        /// <summary>
+        /// Allow implementing classes to register environment defaults.
+        /// </summary>
+        protected virtual IDictionary<string, string> EnvironmentDefaults() =>
+            new Dictionary<string, string>();
 
         /// <summary>
         /// Allow implementing classes to register dependencies.
@@ -80,6 +93,16 @@ namespace TwoMQTT.Core
         /// <returns></returns>
         private IHostBuilder Configure(string[] args)
         {
+            // Setup default environment variables
+            foreach (var env in this.EnvironmentDefaults())
+            {
+                if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable(env.Key)))
+                {
+                    Environment.SetEnvironmentVariable(env.Key, env.Value);
+                }
+            }
+
+            // Build the host
             var builder = new HostBuilder()
                 .ConfigureAppConfiguration((hostingContext, config) =>
                 {
@@ -89,18 +112,26 @@ namespace TwoMQTT.Core
                 })
                 .ConfigureServices((hostContext, services) =>
                 {
+                    services.AddOptions();
 
                     var data = Channel.CreateUnbounded<TData>();
                     var command = Channel.CreateUnbounded<TCommand>();
-
-                    services.AddOptions();
-                    services.AddSingleton<IManagedMqttClient>(x => new MqttFactory().CreateManagedMqttClient());
                     services.AddSingleton<ChannelReader<TData>>(x => data.Reader);
                     services.AddSingleton<ChannelWriter<TData>>(x => data.Writer);
                     services.AddSingleton<ChannelReader<TCommand>>(x => command.Reader);
                     services.AddSingleton<ChannelWriter<TCommand>>(x => command.Writer);
-                    services.AddHostedService<TSource>();
-                    services.AddHostedService<TSink>();
+
+                    services.AddSingleton<ISourceLiason<TData, TCommand>, TSourceLiason>();
+                    services.AddHostedService<SourceManager<TData, TCommand>>();
+
+                    services.AddSingleton<IManagedMqttClient>(x => new MqttFactory().CreateManagedMqttClient());
+                    services.AddSingleton<IMQTTGenerator, MQTTGenerator>(x =>
+                    {
+                        var opts = x.GetService<IOptions<Models.MQTTManagerOptions>>();
+                        return new MQTTGenerator(opts.Value.TopicPrefix, opts.Value.DiscoveryName);
+                    });
+                    services.AddSingleton<IMQTTLiason<TData, TCommand>, TMQTTLiason>();
+                    services.AddHostedService<MQTTManager<TData, TCommand>>();
 
                     this.ConfigureServices(hostContext, services);
                 })
