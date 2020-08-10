@@ -10,9 +10,6 @@ namespace TwoMQTT.Core.Models
         public int Command { get; set; } = 0;
         public T Data { get; set; } = new T();
 
-        public override string ToString()
-        {
-            return $"Command: {this.Command}, Data: {this.Data}";
-        }
+        public override string ToString() => $"Command: {this.Command}, Data: {this.Data}";
     }
 }

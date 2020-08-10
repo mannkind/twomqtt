@@ -74,7 +74,7 @@ namespace TwoMQTT.Core.Managers
                 this.Logger.LogInformation("Awaiting incoming commands");
                 await foreach (var item in this.IncomingCommands.ReadAllAsync(cancellationToken))
                 {
-                    this.Logger.LogDebug($"Received incoming command {item}");
+                    this.Logger.LogDebug("Received incoming command {item}", item);
                     await this.Liason.SendCommandAsync(item, cancellationToken);
                 }
                 this.Logger.LogInformation("Finished awaiting incoming commands");
@@ -100,7 +100,7 @@ namespace TwoMQTT.Core.Managers
         /// <param name="cancellationToken"></param>
         private async Task PollAsync(CancellationToken cancellationToken = default)
         {
-            this.Logger.LogDebug($"Started Polling");
+            this.Logger.LogDebug("Started Polling");
             var tasks = new List<Task>();
             await foreach (var result in this.Liason.FetchAllAsync(cancellationToken))
             {
@@ -109,11 +109,11 @@ namespace TwoMQTT.Core.Managers
                     continue;
                 }
 
-                this.Logger.LogDebug($"Found {result}");
+                this.Logger.LogDebug("Found {result}", result);
                 tasks.Add(this.OutgoingData.WriteAsync(result, cancellationToken).AsTask());
             }
             await Task.WhenAll(tasks);
-            this.Logger.LogDebug($"Finished Polling");
+            this.Logger.LogDebug("Finished Polling");
         }
 
         /// <summary>
