@@ -56,11 +56,16 @@ namespace TwoMQTT.Core.Managers
             this.Liason = liason;
             this.Opts = opts.Value;
             this.Logger.LogInformation(
-                $"Broker:            {opts.Value.Broker}\n" +
-                $"TopicPrefix:       {opts.Value.TopicPrefix}\n" +
-                $"DiscoveryEnabled:  {opts.Value.DiscoveryEnabled}\n" +
-                $"DiscoveryPrefix:   {opts.Value.DiscoveryPrefix}\n" +
-                $"DiscoveryName:     {opts.Value.DiscoveryName}\n"
+                "Broker:            {broker}\n" +
+                "TopicPrefix:       {topicPrefix}\n" +
+                "DiscoveryEnabled:  {discoveryEnabled}\n" +
+                "DiscoveryPrefix:   {discoveryPrefix}\n" +
+                "DiscoveryName:     {discoveryName}\n",
+                opts.Value.Broker,
+                opts.Value.TopicPrefix,
+                opts.Value.DiscoveryEnabled,
+                opts.Value.DiscoveryPrefix,
+                opts.Value.DiscoveryName
             );
         }
 
@@ -76,7 +81,7 @@ namespace TwoMQTT.Core.Managers
             {
                 await foreach (var item in this.IncomingData.ReadAllAsync(cancellationToken))
                 {
-                    this.Logger.LogDebug($"Started publishing data for {item}");
+                    this.Logger.LogDebug("Started publishing data for {item}", item);
                     var pubs = this.Liason.MapData(item);
                     var tasks = new List<Task>();
                     foreach (var pub in pubs)
@@ -85,7 +90,7 @@ namespace TwoMQTT.Core.Managers
                     }
 
                     await Task.WhenAll(tasks);
-                    this.Logger.LogDebug($"Finished publishing data {item}");
+                    this.Logger.LogDebug("Finished publishing data {item}", item);
                 }
             });
 
@@ -271,15 +276,15 @@ namespace TwoMQTT.Core.Managers
         /// </summary>
         private async Task SubscribeAsync(IEnumerable<string> filters, CancellationToken cancellationToken = default)
         {
-            this.Logger.LogDebug($"Started subscribing to topics");
-            var topics = filters.Select(x =>
+            this.Logger.LogDebug("Started subscribing to topics");
+            var topics = filters.Select(topic =>
             {
-                this.Logger.LogDebug($"Found topic {x}");
-                return new TopicFilterBuilder().WithTopic(x).Build();
+                this.Logger.LogDebug("Found topic {topic}", topic);
+                return new TopicFilterBuilder().WithTopic(topic).Build();
             });
 
             await this.Client.SubscribeAsync(topics);
-            this.Logger.LogDebug($"Finished subscribing to topics");
+            this.Logger.LogDebug("Finished subscribing to topics");
         }
 
         /// <summary>
@@ -289,11 +294,11 @@ namespace TwoMQTT.Core.Managers
         {
             if (this.KnownMessages.ContainsKey(topic) && this.KnownMessages[topic] == payload)
             {
-                this.Logger.LogDebug($"Duplicate '{payload}' found on '{topic}'");
+                this.Logger.LogDebug("Duplicate '{payload}' found on '{topic}'", payload, topic);
                 return;
             }
 
-            this.Logger.LogInformation($"Publishing '{payload}' on '{topic}'");
+            this.Logger.LogInformation("Publishing '{payload}' on '{topic}'", payload, topic);
             await this.Client.PublishAsync(
                 new MqttApplicationMessageBuilder()
                     .WithTopic(topic)
