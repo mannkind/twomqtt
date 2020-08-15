@@ -41,27 +41,6 @@ namespace TwoMQTT.Core.Managers
         }
 
         /// <summary>
-        /// The logger used internally.
-        /// </summary>
-        private readonly ILogger<SourceManager<TData, TCommand>> Logger;
-
-        /// <summary>
-        /// The channel writer used to communicate data from the source.
-        /// </summary>
-        private readonly ChannelWriter<TData> OutgoingData;
-
-        /// <summary>
-        /// The channel reader used to communicate commands to the source.
-        /// </summary>
-        private readonly ChannelReader<TCommand> IncomingCommands;
-
-        /// <summary>
-        /// The liason to the source system.
-        /// </summary>
-        private readonly ISourceLiason<TData, TCommand> Liason;
-        private readonly IThrottleManager Throttler;
-
-        /// <summary>
         /// Executed as an IHostedService as a background job.
         /// </summary>
         /// <param name="cancellationToken"></param>
@@ -93,6 +72,27 @@ namespace TwoMQTT.Core.Managers
 
             await Task.WhenAll(readChannelTask, pollTask);
         }
+
+        /// <summary>
+        /// The logger used internally.
+        /// </summary>
+        private readonly ILogger<SourceManager<TData, TCommand>> Logger;
+
+        /// <summary>
+        /// The channel writer used to communicate data from the source.
+        /// </summary>
+        private readonly ChannelWriter<TData> OutgoingData;
+
+        /// <summary>
+        /// The channel reader used to communicate commands to the source.
+        /// </summary>
+        private readonly ChannelReader<TCommand> IncomingCommands;
+
+        /// <summary>
+        /// The liason to the source system.
+        /// </summary>
+        private readonly ISourceLiason<TData, TCommand> Liason;
+        private readonly IThrottleManager Throttler;
 
         /// <summary>
         /// Poll the source.
