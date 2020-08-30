@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Channels;
@@ -10,21 +11,24 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MQTTnet;
 using MQTTnet.Extensions.ManagedClient;
-using TwoMQTT.Core.Utils;
 using TwoMQTT.Core.Interfaces;
 using TwoMQTT.Core.Managers;
-using System.Collections.Generic;
+using TwoMQTT.Core.Utils;
 
 namespace TwoMQTT.Core
 {
     /// <summary>
     /// A class representing a console program.
     /// </summary>
-    public abstract class ConsoleProgram<TData, TCommand, TSourceLiason, TMQTTLiason>
+    /// <typeparam name="TData">The type representing the data from the source system.</typeparam>
+    /// <typeparam name="TCmd">The type representing the command to the source system. </typeparam>
+    /// <typeparam name="TSourceLiason">The type representing the liason to the source system.</typeparam>
+    /// <typeparam name="TMqttLiason">The type representing the liason to the mqtt broker.</typeparam>
+    public abstract class ConsoleProgram<TData, TCmd, TSourceLiason, TMqttLiason>
         where TData : class
-        where TCommand : class
-        where TSourceLiason : class, ISourceLiason<TData, TCommand>
-        where TMQTTLiason : class, IMQTTLiason<TData, TCommand>
+        where TCmd : class
+        where TSourceLiason : class, ISourceLiason<TData, TCmd>
+        where TMqttLiason : class, IMQTTLiason<TData, TCmd>
     {
         /// <summary>
         /// Initializes a new instance of the HTTPSourceDAO class.
@@ -44,8 +48,7 @@ namespace TwoMQTT.Core
         /// <summary>
         /// Allow implementing classes to register environment defaults.
         /// </summary>
-        protected virtual IDictionary<string, string> EnvironmentDefaults() =>
-            new Dictionary<string, string>();
+        protected virtual IDictionary<string, string> EnvironmentDefaults() => new Dictionary<string, string>();
 
         /// <summary>
         /// Allow implementing classes to register dependencies.
@@ -115,23 +118,28 @@ namespace TwoMQTT.Core
                     services.AddOptions();
 
                     var data = Channel.CreateUnbounded<TData>();
-                    var command = Channel.CreateUnbounded<TCommand>();
+                    var command = Channel.CreateUnbounded<TCmd>();
                     services.AddSingleton<ChannelReader<TData>>(x => data.Reader);
                     services.AddSingleton<ChannelWriter<TData>>(x => data.Writer);
-                    services.AddSingleton<ChannelReader<TCommand>>(x => command.Reader);
-                    services.AddSingleton<ChannelWriter<TCommand>>(x => command.Writer);
+                    services.AddSingleton<ChannelReader<TCmd>>(x => command.Reader);
+                    services.AddSingleton<ChannelWriter<TCmd>>(x => command.Writer);
 
-                    services.AddSingleton<ISourceLiason<TData, TCommand>, TSourceLiason>();
-                    services.AddHostedService<SourceManager<TData, TCommand>>();
+                    services.AddSingleton<ISourceLiason<TData, TCmd>, TSourceLiason>();
+                    services.AddHostedService<SourceManager<TData, TCmd>>();
 
                     services.AddSingleton<IManagedMqttClient>(x => new MqttFactory().CreateManagedMqttClient());
                     services.AddSingleton<IMQTTGenerator, MQTTGenerator>(x =>
                     {
                         var opts = x.GetService<IOptions<Models.MQTTManagerOptions>>();
+                        if (opts == null)
+                        {
+                            throw new ArgumentException($"{nameof(opts.Value.TopicPrefix)} and {nameof(opts.Value.DiscoveryName)} are required for {nameof(MQTTGenerator)}.");
+                        }
+
                         return new MQTTGenerator(opts.Value.TopicPrefix, opts.Value.DiscoveryName);
                     });
-                    services.AddSingleton<IMQTTLiason<TData, TCommand>, TMQTTLiason>();
-                    services.AddHostedService<MQTTManager<TData, TCommand>>();
+                    services.AddSingleton<IMQTTLiason<TData, TCmd>, TMqttLiason>();
+                    services.AddHostedService<MQTTManager<TData, TCmd>>();
 
                     this.ConfigureServices(hostContext, services);
                 })

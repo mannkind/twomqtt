@@ -9,11 +9,11 @@ namespace TwoMQTT.Core.Interfaces
     /// <summary>
     /// An interface representing a way to liason subscriptions, discovery, and more.
     /// </summary>
-    /// <typeparam name="TData"></typeparam>
-    /// <typeparam name="TCommand"></typeparam>
-    public interface IMQTTLiason<TData, TCommand>
+    /// <typeparam name="TData">The type representing the data from the source system.</typeparam>
+    /// <typeparam name="TCmd">The type representing the command to the source system. </typeparam>
+    public interface IMQTTLiason<TData, TCmd>
         where TData : class
-        where TCommand : class
+        where TCmd : class
     {
         /// <summary>
         /// Map incoming data to an MQTT topic/payload.
@@ -30,7 +30,7 @@ namespace TwoMQTT.Core.Interfaces
         /// <param name="payload"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        IEnumerable<TCommand> MapCommand(string topic, string payload) => new List<TCommand>();
+        IEnumerable<TCmd> MapCommand(string topic, string payload) => new List<TCmd>();
 
         /// <summary>
         /// Manually handle an MQTT topic/payload.
