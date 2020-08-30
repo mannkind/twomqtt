@@ -5,18 +5,17 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using TwoMQTT.Core.Interfaces;
-using TwoMQTT.Core.Utils;
 
 namespace TwoMQTT.Core.Managers
 {
     /// <summary>
     /// An class representing a managed way to interact with a source.
     /// </summary>
-    /// <typeparam name="TData"></typeparam>
-    /// <typeparam name="TCommand"></typeparam>
-    public class SourceManager<TData, TCommand> : BackgroundService
+    /// <typeparam name="TData">The type representing the mapped data from the source system.</typeparam>
+    /// <typeparam name="TCmd">The type representing the command to the source system. </typeparam>
+    public class SourceManager<TData, TCmd> : BackgroundService
         where TData : class
-        where TCommand : class
+        where TCmd : class
     {
         /// <summary>
         /// Initializes a new instance of the SourceManager class.
@@ -27,10 +26,10 @@ namespace TwoMQTT.Core.Managers
         /// <param name="liason"></param>
         /// <param name="throttler"></param>
         public SourceManager(
-            ILogger<SourceManager<TData, TCommand>> logger,
+            ILogger<SourceManager<TData, TCmd>> logger,
             ChannelWriter<TData> outgoingData,
-            ChannelReader<TCommand> incomingCommand,
-            ISourceLiason<TData, TCommand> liason,
+            ChannelReader<TCmd> incomingCommand,
+            ISourceLiason<TData, TCmd> liason,
             IThrottleManager throttler)
         {
             this.Logger = logger;
@@ -47,52 +46,68 @@ namespace TwoMQTT.Core.Managers
         /// <returns></returns>
         protected override async Task ExecuteAsync(CancellationToken cancellationToken = default)
         {
-            // Listen for incoming messages
-            var readChannelTask = Task.Run(async () =>
-            {
-                this.Logger.LogInformation("Awaiting incoming commands");
-                await foreach (var item in this.IncomingCommands.ReadAllAsync(cancellationToken))
-                {
-                    this.Logger.LogDebug("Received incoming command {item}", item);
-                    await this.Liason.SendCommandAsync(item, cancellationToken);
-                }
-                this.Logger.LogInformation("Finished awaiting incoming commands");
-            });
-
-            var pollTask = Task.Run(async () =>
-            {
-                this.Logger.LogInformation("Polling source");
-                while (!cancellationToken.IsCancellationRequested)
-                {
-                    await this.PollAsync(cancellationToken);
-                    await this.DelayAsync(cancellationToken);
-                }
-                this.Logger.LogInformation("Finished polling source");
-            });
-
-            await Task.WhenAll(readChannelTask, pollTask);
+            await Task.WhenAll(
+                this.ReadIncomingCommandsAsync(cancellationToken),
+                this.PollingSourceAsync(cancellationToken)
+            );
         }
 
         /// <summary>
         /// The logger used internally.
         /// </summary>
-        private readonly ILogger<SourceManager<TData, TCommand>> Logger;
+        private readonly ILogger<SourceManager<TData, TCmd>> Logger;
 
         /// <summary>
-        /// The channel writer used to communicate data from the source.
+        /// The channel writer used to communicate data from the source system.
         /// </summary>
         private readonly ChannelWriter<TData> OutgoingData;
 
         /// <summary>
         /// The channel reader used to communicate commands to the source.
         /// </summary>
-        private readonly ChannelReader<TCommand> IncomingCommands;
+        private readonly ChannelReader<TCmd> IncomingCommands;
 
         /// <summary>
         /// The liason to the source system.
         /// </summary>
-        private readonly ISourceLiason<TData, TCommand> Liason;
+        private readonly ISourceLiason<TData, TCmd> Liason;
+
+        /// <summary>
+        /// The throttler used to delay polling the source system.
+        /// </summary>
         private readonly IThrottleManager Throttler;
+
+        /// <summary>
+        /// Read incoming commands.
+        /// </summary>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        private async Task ReadIncomingCommandsAsync(CancellationToken cancellationToken)
+        {
+            this.Logger.LogInformation("Awaiting incoming commands");
+            await foreach (var item in this.IncomingCommands.ReadAllAsync(cancellationToken))
+            {
+                this.Logger.LogDebug("Received incoming command {item}", item);
+                await this.Liason.SendCommandAsync(item, cancellationToken);
+            }
+            this.Logger.LogInformation("Finished awaiting incoming commands");
+        }
+
+        /// <summary>
+        /// Poll the source system.
+        /// </summary>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        private async Task PollingSourceAsync(CancellationToken cancellationToken)
+        {
+            this.Logger.LogInformation("Polling source");
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                await this.PollAsync(cancellationToken);
+                await this.DelayAsync(cancellationToken);
+            }
+            this.Logger.LogInformation("Finished polling source");
+        }
 
         /// <summary>
         /// Poll the source.

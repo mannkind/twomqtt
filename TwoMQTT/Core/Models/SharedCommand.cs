@@ -3,7 +3,7 @@ namespace TwoMQTT.Core.Models
     /// <summary>
     /// A class representing a command, shared between source and sink.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
+    /// <typeparam name="T">The type representing the data of the command.</typeparam>
     public class SharedCommand<T>
         where T : new()
     {

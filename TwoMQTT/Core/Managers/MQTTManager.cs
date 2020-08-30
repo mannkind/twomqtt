@@ -13,20 +13,20 @@ using MQTTnet;
 using MQTTnet.Client.Options;
 using MQTTnet.Extensions.ManagedClient;
 using Newtonsoft.Json;
-using TwoMQTT.Core.Utils;
 using TwoMQTT.Core.Interfaces;
 using TwoMQTT.Core.Models;
+using TwoMQTT.Core.Utils;
 
 namespace TwoMQTT.Core.Managers
 {
     /// <summary>
     /// A class representing a managed way to interact with an MQTT broker.
     /// </summary>
-    /// <typeparam name="TData"></typeparam>
-    /// <typeparam name="TCommand"></typeparam>
-    public class MQTTManager<TData, TCommand> : BackgroundService
+    /// <typeparam name="TData">The type representing the mapped data from the source system.</typeparam>
+    /// <typeparam name="TCmd">The type representing the command to the source system. </typeparam>
+    public class MQTTManager<TData, TCmd> : BackgroundService
         where TData : class
-        where TCommand : class
+        where TCmd : class
     {
         /// <summary>
         /// Initializes a new instance of the MQTTManager class.
@@ -39,12 +39,12 @@ namespace TwoMQTT.Core.Managers
         /// <param name="liason"></param>
         /// <param name="opts"></param>
         public MQTTManager(
-            ILogger<MQTTManager<TData, TCommand>> logger,
+            ILogger<MQTTManager<TData, TCmd>> logger,
             ChannelReader<TData> incomingData,
-            ChannelWriter<TCommand> outgoingCommand,
+            ChannelWriter<TCmd> outgoingCommand,
             IManagedMqttClient client,
             IMQTTGenerator generator,
-            IMQTTLiason<TData, TCommand> liason,
+            IMQTTLiason<TData, TCmd> liason,
             IOptions<MQTTManagerOptions> opts
         )
         {
@@ -76,50 +76,21 @@ namespace TwoMQTT.Core.Managers
         /// <returns></returns>
         protected override async Task ExecuteAsync(CancellationToken cancellationToken = default)
         {
-            // Listen for incoming messages
-            var readChannelTask = Task.Run(async () =>
-            {
-                await foreach (var item in this.IncomingData.ReadAllAsync(cancellationToken))
-                {
-                    this.Logger.LogDebug("Started publishing data for {item}", item);
-                    var pubs = this.Liason.MapData(item);
-                    var tasks = new List<Task>();
-                    foreach (var pub in pubs)
-                    {
-                        tasks.Add(this.PublishAsync(pub.topic, pub.payload, cancellationToken));
-                    }
-
-                    await Task.WhenAll(tasks);
-                    this.Logger.LogDebug("Finished publishing data {item}", item);
-                }
-            });
-
-            var pollTask = Task.Run(async () =>
-            {
-                await Task.WhenAll(
-                    this.ConnectedCallback(cancellationToken),
-                    this.MessageReceivedCallback(cancellationToken)
-                );
-                await this.ConnectAsync(cancellationToken);
-                await Task.WhenAll(
-                    this.HandleSubscribeAsync(cancellationToken),
-                    this.HandleDiscoveryAsync(cancellationToken)
-                );
-            });
-
-            await Task.WhenAll(readChannelTask, pollTask);
+            await Task.WhenAll(
+                ReadIncomingMessagesAsync(cancellationToken),
+                MQTTSetupAsync(cancellationToken)
+            );
         }
-
 
         /// <summary>
         /// The logger used internally.
         /// </summary>
-        private readonly ILogger<MQTTManager<TData, TCommand>> Logger;
+        private readonly ILogger<MQTTManager<TData, TCmd>> Logger;
 
         /// <summary>
         /// The mqtt liason.
         /// </summary>
-        private readonly IMQTTLiason<TData, TCommand> Liason;
+        private readonly IMQTTLiason<TData, TCmd> Liason;
 
         /// <summary>
         /// The options required to communicate properly with MQTT.
@@ -134,7 +105,7 @@ namespace TwoMQTT.Core.Managers
         /// <summary>
         /// The channel writer used to communicate commands to the source.
         /// </summary>
-        private readonly ChannelWriter<TCommand> OutgoingCommand;
+        private readonly ChannelWriter<TCmd> OutgoingCommand;
 
         /// <summary>
         /// The MQTT client used to access the the MQTT broker.
@@ -150,6 +121,41 @@ namespace TwoMQTT.Core.Managers
         /// The cache of known published messages; used to not continually publish duplicate messages.
         /// </summary>
         private readonly ConcurrentDictionary<string, string> KnownMessages = new ConcurrentDictionary<string, string>();
+
+        /// <summary>
+        /// Read incoming messages.
+        /// </summary>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        private async Task ReadIncomingMessagesAsync(CancellationToken cancellationToken)
+        {
+            await foreach (var item in this.IncomingData.ReadAllAsync(cancellationToken))
+            {
+                this.Logger.LogDebug("Started publishing data for {item}", item);
+                var pubs = this.Liason.MapData(item);
+                var tasks = new List<Task>();
+                foreach (var pub in pubs)
+                {
+                    tasks.Add(this.PublishAsync(pub.topic, pub.payload, cancellationToken));
+                }
+
+                await Task.WhenAll(tasks);
+                this.Logger.LogDebug("Finished publishing data {item}", item);
+            }
+        }
+
+        private async Task MQTTSetupAsync(CancellationToken cancellationToken)
+        {
+            await Task.WhenAll(
+                this.ConnectedCallback(cancellationToken),
+                this.MessageReceivedCallback(cancellationToken)
+            );
+            await this.ConnectAsync(cancellationToken);
+            await Task.WhenAll(
+                this.HandleSubscribeAsync(cancellationToken),
+                this.HandleDiscoveryAsync(cancellationToken)
+            );
+        }
 
         /// <summary>
         /// Connect to the MQTT broker
