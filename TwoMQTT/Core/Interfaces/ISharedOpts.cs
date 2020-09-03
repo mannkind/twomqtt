@@ -13,6 +13,6 @@ namespace TwoMQTT.Core.Interfaces
         /// 
         /// </summary>
         /// <value></value>
-        List<TQuestion> Resources { get; set; }
+        List<TQuestion> Resources { get; init; }
     }
 }
