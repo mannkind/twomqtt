@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using System.Threading.Channels;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -40,8 +39,7 @@ namespace TwoMQTT.Core.Managers
         /// <param name="opts"></param>
         public MQTTManager(
             ILogger<MQTTManager<TData, TCmd>> logger,
-            ChannelReader<TData> incomingData,
-            ChannelWriter<TCmd> outgoingCommand,
+            IIPC<TData, TCmd> ipc,
             IManagedMqttClient client,
             IMQTTGenerator generator,
             IMQTTLiason<TData, TCmd> liason,
@@ -49,8 +47,7 @@ namespace TwoMQTT.Core.Managers
         )
         {
             this.Logger = logger;
-            this.IncomingData = incomingData;
-            this.OutgoingCommand = outgoingCommand;
+            this.IPC = ipc;
             this.Client = client;
             this.Generator = generator;
             this.Liason = liason;
@@ -77,7 +74,7 @@ namespace TwoMQTT.Core.Managers
         protected override async Task ExecuteAsync(CancellationToken cancellationToken = default)
         {
             await Task.WhenAll(
-                ReadIncomingMessagesAsync(cancellationToken),
+                ReadIncomingAsync(cancellationToken),
                 MQTTSetupAsync(cancellationToken)
             );
         }
@@ -88,6 +85,11 @@ namespace TwoMQTT.Core.Managers
         private readonly ILogger<MQTTManager<TData, TCmd>> Logger;
 
         /// <summary>
+        /// The IPC used internally.
+        /// </summary>
+        private readonly IIPC<TData, TCmd> IPC;
+
+        /// <summary>
         /// The mqtt liason.
         /// </summary>
         private readonly IMQTTLiason<TData, TCmd> Liason;
@@ -96,16 +98,6 @@ namespace TwoMQTT.Core.Managers
         /// The options required to communicate properly with MQTT.
         /// </summary>
         private readonly MQTTManagerOptions Opts;
-
-        /// <summary>
-        /// The channel reader used to communicate data from the source.
-        /// </summary>
-        private readonly ChannelReader<TData> IncomingData;
-
-        /// <summary>
-        /// The channel writer used to communicate commands to the source.
-        /// </summary>
-        private readonly ChannelWriter<TCmd> OutgoingCommand;
 
         /// <summary>
         /// The MQTT client used to access the the MQTT broker.
@@ -127,9 +119,10 @@ namespace TwoMQTT.Core.Managers
         /// </summary>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        private async Task ReadIncomingMessagesAsync(CancellationToken cancellationToken)
+        private async Task ReadIncomingAsync(CancellationToken cancellationToken)
         {
-            await foreach (var item in this.IncomingData.ReadAllAsync(cancellationToken))
+            this.Logger.LogInformation("Awaiting incoming data");
+            await this.IPC.ReadAsync(async item =>
             {
                 this.Logger.LogDebug("Started publishing data for {item}", item);
                 var pubs = this.Liason.MapData(item);
@@ -141,7 +134,8 @@ namespace TwoMQTT.Core.Managers
 
                 await Task.WhenAll(tasks);
                 this.Logger.LogDebug("Finished publishing data {item}", item);
-            }
+            }, cancellationToken);
+            this.Logger.LogInformation("Finished awaiting incoming data");
         }
 
         private async Task MQTTSetupAsync(CancellationToken cancellationToken)
@@ -214,7 +208,7 @@ namespace TwoMQTT.Core.Managers
                 var payload = e.ApplicationMessage.ConvertPayloadToString();
                 var cmds = this.Liason.MapCommand(topic, payload);
                 var tasks = cmds.Select(cmd =>
-                    this.OutgoingCommand.WriteAsync(cmd, cancellationToken).AsTask()
+                    this.IPC.WriteAsync(cmd, cancellationToken).AsTask()
                 );
 
                 await Task.WhenAll(tasks);

@@ -6,6 +6,8 @@
     <TargetFramework>net5.0</TargetFramework>
     <TargetLanguage>9.0</TargetLanguage>
     <Nullable>enable</Nullable>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <RepositoryUrl>https://github.com/mannkind/twomqtt</RepositoryUrl>
   </PropertyGroup>
 
