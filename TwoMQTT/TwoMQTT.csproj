@@ -5,6 +5,8 @@
     <OutputType>library</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <Nullable>enable</Nullable>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <RepositoryUrl>https://github.com/mannkind/twomqtt</RepositoryUrl>
   </PropertyGroup>
 
