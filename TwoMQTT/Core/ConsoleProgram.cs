@@ -123,6 +123,8 @@ namespace TwoMQTT.Core
                     services.AddSingleton<ChannelWriter<TData>>(x => data.Writer);
                     services.AddSingleton<ChannelReader<TCmd>>(x => command.Reader);
                     services.AddSingleton<ChannelWriter<TCmd>>(x => command.Writer);
+                    services.AddSingleton<IIPC<TData, TCmd>, IPCManager<TData, TCmd>>();
+                    services.AddSingleton<IIPC<TCmd, TData>, IPCManager<TCmd, TData>>();
 
                     services.AddSingleton<ISourceLiason<TData, TCmd>, TSourceLiason>();
                     services.AddHostedService<SourceManager<TData, TCmd>>();
