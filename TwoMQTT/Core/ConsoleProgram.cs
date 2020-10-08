@@ -117,8 +117,13 @@ namespace TwoMQTT.Core
                 {
                     services.AddOptions();
 
-                    var data = Channel.CreateUnbounded<TData>();
-                    var command = Channel.CreateUnbounded<TCmd>();
+                    var chanOpts = new UnboundedChannelOptions
+                    {
+                        SingleReader = true,
+                        SingleWriter = true,
+                    };
+                    var data = Channel.CreateUnbounded<TData>(chanOpts);
+                    var command = Channel.CreateUnbounded<TCmd>(chanOpts);
                     services.AddSingleton<ChannelReader<TData>>(x => data.Reader);
                     services.AddSingleton<ChannelWriter<TData>>(x => data.Writer);
                     services.AddSingleton<ChannelReader<TCmd>>(x => command.Reader);
