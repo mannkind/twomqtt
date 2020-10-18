@@ -18,9 +18,10 @@ namespace TwoMQTTTest.Managers
             var logger = new Moq.Mock<ILogger<SourceManager<object, object>>>().Object;
             var outgoingData = Channel.CreateUnbounded<object>();
             var incomingCommand = Channel.CreateUnbounded<object>();
+            var ipc = new IPCManager<object, object>(incomingCommand, outgoingData);
             var liason = new Moq.Mock<ISourceLiason<object, object>>();
             var throttleManager = new Moq.Mock<IThrottleManager>();
-            var obj = new SourceManager<object, object>(logger, outgoingData, incomingCommand, liason.Object, throttleManager.Object);
+            var obj = new SourceManager<object, object>(logger, ipc, liason.Object, throttleManager.Object);
             var ct = new CancellationToken();
 
             await obj.StartAsync(ct);

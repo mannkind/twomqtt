@@ -23,11 +23,12 @@ namespace TwoMQTTTest.Managers
             var logger = new Moq.Mock<ILogger<MQTTManager<object, object>>>().Object;
             var incomingData = Channel.CreateUnbounded<object>();
             var outgoingCommand = Channel.CreateUnbounded<object>();
+            var ipc = new IPCManager<object, object>(incomingData, outgoingCommand);
             var client = new Moq.Mock<IManagedMqttClient>();
             var generator = new Moq.Mock<IMQTTGenerator>();
             var liason = new Moq.Mock<IMQTTLiason<object, object>>();
             var opts = Options.Create(new MQTTManagerOptions());
-            var obj = new MQTTManager<object, object>(logger, incomingData, outgoingCommand, client.Object, generator.Object, liason.Object, opts);
+            var obj = new MQTTManager<object, object>(logger, ipc, client.Object, generator.Object, liason.Object, opts);
 
             var ct = new CancellationToken();
 
