@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using Newtonsoft.Json;
 
-namespace TwoMQTT.Core.Models
+namespace TwoMQTT.Models
 {
     /// <summary>
     /// An class representing fields in a MQTT Discovery payload.

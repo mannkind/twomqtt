@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace TwoMQTT.Core.Extensions
+namespace TwoMQTT.Extensions
 {
     /// <summary>
     /// Extensions for classes implementing IServiceCollection

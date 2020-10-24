@@ -1,11 +1,12 @@
-using TwoMQTT.Core.Interfaces;
-using TwoMQTT.Core.Managers;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using System.Threading.Channels;
-using System.Threading;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
+using TwoMQTT.Interfaces;
+using TwoMQTT.Managers;
+
 
 namespace TwoMQTTTest.Managers
 {

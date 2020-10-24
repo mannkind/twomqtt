@@ -1,4 +1,4 @@
-namespace TwoMQTT.Core.Models
+namespace TwoMQTT.Models
 {
     /// <summary>
     /// A class representing a command, shared between source and sink.

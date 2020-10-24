@@ -3,9 +3,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using TwoMQTT.Core.Interfaces;
 
-namespace TwoMQTT.Core.Managers
+namespace TwoMQTT.Managers
 {
     /// <summary>
     /// An class representing a managed way to interact with a source.
@@ -26,9 +25,9 @@ namespace TwoMQTT.Core.Managers
         /// <param name="throttler"></param>
         public SourceManager(
             ILogger<SourceManager<TData, TCmd>> logger,
-            IIPC<TCmd, TData> ipc,
-            ISourceLiason<TData, TCmd> liason,
-            IThrottleManager throttler)
+            Interfaces.IIPC<TCmd, TData> ipc,
+            Interfaces.ISourceLiason<TData, TCmd> liason,
+            Interfaces.IThrottleManager throttler)
         {
             this.Logger = logger;
             this.IPC = ipc;
@@ -57,17 +56,17 @@ namespace TwoMQTT.Core.Managers
         /// <summary>
         /// The IPC used internally.
         /// </summary>
-        private readonly IIPC<TCmd, TData> IPC;
+        private readonly Interfaces.IIPC<TCmd, TData> IPC;
 
         /// <summary>
         /// The liason to the source system.
         /// </summary>
-        private readonly ISourceLiason<TData, TCmd> Liason;
+        private readonly Interfaces.ISourceLiason<TData, TCmd> Liason;
 
         /// <summary>
         /// The throttler used to delay polling the source system.
         /// </summary>
-        private readonly IThrottleManager Throttler;
+        private readonly Interfaces.IThrottleManager Throttler;
 
         /// <summary>
         /// Read incoming commands.

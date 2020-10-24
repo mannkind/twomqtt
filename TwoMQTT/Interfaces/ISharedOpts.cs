@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace TwoMQTT.Core.Interfaces
+namespace TwoMQTT.Interfaces
 {
     /// <summary>
     /// An interface representing shared options.

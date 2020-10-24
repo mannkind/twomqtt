@@ -2,14 +2,13 @@ using System;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
-using TwoMQTT.Core.Interfaces;
 
-namespace TwoMQTT.Core.Managers
+namespace TwoMQTT.Managers
 {
     /// <summary>
     /// An class representing a managed way to handle IPC.
     /// </summary>
-    public class IPCManager<TIncoming, TOutgoing> : IIPC<TIncoming, TOutgoing>
+    public class IPCManager<TIncoming, TOutgoing> : Interfaces.IIPC<TIncoming, TOutgoing>
         where TIncoming : class
         where TOutgoing : class
     {

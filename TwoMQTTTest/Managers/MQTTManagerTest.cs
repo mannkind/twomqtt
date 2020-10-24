@@ -1,16 +1,16 @@
-using TwoMQTT.Core.Interfaces;
-using TwoMQTT.Core.Managers;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using System.Threading.Channels;
-using System.Threading;
-using Moq;
-using TwoMQTT.Core.Utils;
-using MQTTnet.Extensions.ManagedClient;
 using Microsoft.Extensions.Options;
-using TwoMQTT.Core.Models;
-using System.Collections.Generic;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Moq;
+using MQTTnet.Extensions.ManagedClient;
+using TwoMQTT.Interfaces;
+using TwoMQTT.Managers;
+using TwoMQTT.Models;
+using TwoMQTT.Utils;
 
 namespace TwoMQTTTest.Managers
 {

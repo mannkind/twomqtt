@@ -1,6 +1,6 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using TwoMQTT.Core;
-using TwoMQTT.Core.Utils;
+using TwoMQTT;
+using TwoMQTT.Utils;
 
 namespace TwoMQTTTest.Utils
 {

@@ -2,9 +2,8 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using MQTTnet.Extensions.ManagedClient;
-using TwoMQTT.Core.Models;
 
-namespace TwoMQTT.Core.Interfaces
+namespace TwoMQTT.Interfaces
 {
     /// <summary>
     /// An interface representing a way to liason subscriptions, discovery, and more.
@@ -57,7 +56,7 @@ namespace TwoMQTT.Core.Interfaces
         /// <typeparam name="string"></typeparam>
         /// <typeparam name="string"></typeparam>
         /// <typeparam name="MQTTDiscovery"></typeparam>
-        IEnumerable<(string slug, string sensor, string type, MQTTDiscovery discovery)> Discoveries() =>
-            new List<(string, string, string, MQTTDiscovery)>();
+        IEnumerable<(string slug, string sensor, string type, Models.MQTTDiscovery discovery)> Discoveries() =>
+            new List<(string, string, string, Models.MQTTDiscovery)>();
     }
 }

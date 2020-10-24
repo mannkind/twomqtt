@@ -1,4 +1,4 @@
-namespace TwoMQTT.Core.Models
+namespace TwoMQTT.Models
 {
     /// <summary>
     /// An class representing options required to communicate properly with MQTT.

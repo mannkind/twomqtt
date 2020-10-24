@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace TwoMQTT.Core.Interfaces
+namespace TwoMQTT.Interfaces
 {
     /// <summary>
     /// An interface to throttle access to the source.

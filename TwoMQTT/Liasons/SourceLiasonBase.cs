@@ -4,9 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using TwoMQTT.Core.Interfaces;
 
-namespace TwoMQTT.Core.Liasons
+namespace TwoMQTT.Liasons
 {
     /// <summary>
     /// 
@@ -20,7 +19,7 @@ namespace TwoMQTT.Core.Liasons
         where TData : class
         where TCommand : class
         where TQuestion : class
-        where TOpts : class, ISharedOpts<TQuestion>, new()
+        where TOpts : class, Interfaces.ISharedOpts<TQuestion>, new()
     {
         public SourceLiasonBase(ILogger<SourceLiasonBase<TData, TCommand, TQuestion, TSource, TOpts>> logger, TSource sourceDAO, IOptions<TOpts> sharedOpts)
         {

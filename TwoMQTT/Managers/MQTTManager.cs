@@ -12,11 +12,8 @@ using MQTTnet;
 using MQTTnet.Client.Options;
 using MQTTnet.Extensions.ManagedClient;
 using Newtonsoft.Json;
-using TwoMQTT.Core.Interfaces;
-using TwoMQTT.Core.Models;
-using TwoMQTT.Core.Utils;
 
-namespace TwoMQTT.Core.Managers
+namespace TwoMQTT.Managers
 {
     /// <summary>
     /// A class representing a managed way to interact with an MQTT broker.
@@ -39,11 +36,11 @@ namespace TwoMQTT.Core.Managers
         /// <param name="opts"></param>
         public MQTTManager(
             ILogger<MQTTManager<TData, TCmd>> logger,
-            IIPC<TData, TCmd> ipc,
+            Interfaces.IIPC<TData, TCmd> ipc,
             IManagedMqttClient client,
-            IMQTTGenerator generator,
-            IMQTTLiason<TData, TCmd> liason,
-            IOptions<MQTTManagerOptions> opts
+            Utils.IMQTTGenerator generator,
+            Interfaces.IMQTTLiason<TData, TCmd> liason,
+            IOptions<Models.MQTTManagerOptions> opts
         )
         {
             this.Logger = logger;
@@ -87,17 +84,17 @@ namespace TwoMQTT.Core.Managers
         /// <summary>
         /// The IPC used internally.
         /// </summary>
-        private readonly IIPC<TData, TCmd> IPC;
+        private readonly Interfaces.IIPC<TData, TCmd> IPC;
 
         /// <summary>
         /// The mqtt liason.
         /// </summary>
-        private readonly IMQTTLiason<TData, TCmd> Liason;
+        private readonly Interfaces.IMQTTLiason<TData, TCmd> Liason;
 
         /// <summary>
         /// The options required to communicate properly with MQTT.
         /// </summary>
-        private readonly MQTTManagerOptions Opts;
+        private readonly Models.MQTTManagerOptions Opts;
 
         /// <summary>
         /// The MQTT client used to access the the MQTT broker.
@@ -107,7 +104,7 @@ namespace TwoMQTT.Core.Managers
         /// <summary>
         /// The MQTT generator used for things such as availability topic, state topic, command topic, etc.
         /// </summary>
-        private readonly IMQTTGenerator Generator;
+        private readonly Utils.IMQTTGenerator Generator;
 
         /// <summary>
         /// The cache of known published messages; used to not continually publish duplicate messages.
@@ -250,7 +247,7 @@ namespace TwoMQTT.Core.Managers
         /// Publish discovery messages that indicate a source is available.
         /// </summary>
         private async Task PublishDiscoveryAsync(string slug, string sensor, string sensorType,
-            MQTTDiscovery discoveryMsg, CancellationToken cancellationToken = default)
+            Models.MQTTDiscovery discoveryMsg, CancellationToken cancellationToken = default)
         {
             var sensorName = this.Generator.Stringify(string.Empty, slug, sensor, '_');
 

@@ -1,9 +1,9 @@
 using System;
 using System.Diagnostics;
-using TwoMQTT.Core.Interfaces;
-using TwoMQTT.Core.Managers;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Threading.Tasks;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using TwoMQTT.Interfaces;
+using TwoMQTT.Managers;
 
 namespace TwoMQTTTest.Managers
 {

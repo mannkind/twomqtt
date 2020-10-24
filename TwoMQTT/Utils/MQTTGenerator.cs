@@ -1,8 +1,7 @@
 using System.Collections.Generic;
 using System.Reflection;
-using TwoMQTT.Core.Models;
 
-namespace TwoMQTT.Core.Utils
+namespace TwoMQTT.Utils
 {
     public interface IMQTTGenerator
     {
@@ -36,7 +35,7 @@ namespace TwoMQTT.Core.Utils
         /// <summary>
         /// Build an appropriate discovery message.
         /// </summary>
-        MQTTDiscovery BuildDiscovery(string slug, string sensor, AssemblyName assembly, bool hasCommand);
+        Models.MQTTDiscovery BuildDiscovery(string slug, string sensor, AssemblyName assembly, bool hasCommand);
     }
 
     /// <summary>
@@ -92,16 +91,16 @@ namespace TwoMQTT.Core.Utils
         }
 
         /// <inheritdoc />
-        public MQTTDiscovery BuildDiscovery(string slug, string sensor, AssemblyName assembly, bool hasCommand)
+        public Models.MQTTDiscovery BuildDiscovery(string slug, string sensor, AssemblyName assembly, bool hasCommand)
         {
-            return new MQTTDiscovery
+            return new Models.MQTTDiscovery
             {
                 Name = this.Stringify(this.DiscoveryName, slug, sensor, ' '),
                 AvailabilityTopic = this.AvailabilityTopic(),
                 StateTopic = this.StateTopic(slug, sensor),
                 CommandTopic = hasCommand ? this.CommandTopic(slug, sensor) : string.Empty,
                 UniqueId = this.Stringify(this.DiscoveryName, slug, sensor, '.'),
-                Device = new MQTTDiscovery.DiscoveryDevice
+                Device = new Models.MQTTDiscovery.DiscoveryDevice
                 {
                     Identifiers = new List<string> { this.AvailabilityTopic() },
                     Name = $"{assembly.Name?.ToLower() ?? "unknown"}2mqtt",
