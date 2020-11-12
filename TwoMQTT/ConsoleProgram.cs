@@ -11,11 +11,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MQTTnet;
 using MQTTnet.Extensions.ManagedClient;
-using TwoMQTT.Core.Interfaces;
-using TwoMQTT.Core.Managers;
-using TwoMQTT.Core.Utils;
 
-namespace TwoMQTT.Core
+namespace TwoMQTT
 {
     /// <summary>
     /// A class representing a console program.
@@ -27,8 +24,8 @@ namespace TwoMQTT.Core
     public abstract class ConsoleProgram<TData, TCmd, TSourceLiason, TMqttLiason>
         where TData : class
         where TCmd : class
-        where TSourceLiason : class, ISourceLiason<TData, TCmd>
-        where TMqttLiason : class, IMQTTLiason<TData, TCmd>
+        where TSourceLiason : class, Interfaces.ISourceLiason<TData, TCmd>
+        where TMqttLiason : class, Interfaces.IMQTTLiason<TData, TCmd>
     {
         /// <summary>
         /// Initializes a new instance of the HTTPSourceDAO class.
@@ -117,36 +114,43 @@ namespace TwoMQTT.Core
                 {
                     services.AddOptions();
 
-                    var data = Channel.CreateUnbounded<TData>();
-                    var command = Channel.CreateUnbounded<TCmd>();
+                    var chanOpts = new UnboundedChannelOptions
+                    {
+                        SingleReader = true,
+                        SingleWriter = true,
+                    };
+                    var data = Channel.CreateUnbounded<TData>(chanOpts);
+                    var command = Channel.CreateUnbounded<TCmd>(chanOpts);
                     services.AddSingleton<ChannelReader<TData>>(x => data.Reader);
                     services.AddSingleton<ChannelWriter<TData>>(x => data.Writer);
                     services.AddSingleton<ChannelReader<TCmd>>(x => command.Reader);
                     services.AddSingleton<ChannelWriter<TCmd>>(x => command.Writer);
+                    services.AddSingleton<Interfaces.IIPC<TData, TCmd>, Managers.IPCManager<TData, TCmd>>();
+                    services.AddSingleton<Interfaces.IIPC<TCmd, TData>, Managers.IPCManager<TCmd, TData>>();
 
-                    services.AddSingleton<ISourceLiason<TData, TCmd>, TSourceLiason>();
-                    services.AddHostedService<SourceManager<TData, TCmd>>();
+                    services.AddSingleton<Interfaces.ISourceLiason<TData, TCmd>, TSourceLiason>();
+                    services.AddHostedService<Managers.SourceManager<TData, TCmd>>();
 
                     services.AddSingleton<IManagedMqttClient>(x => new MqttFactory().CreateManagedMqttClient());
-                    services.AddSingleton<IMQTTGenerator, MQTTGenerator>(x =>
+                    services.AddSingleton<Utils.IMQTTGenerator, Utils.MQTTGenerator>(x =>
                     {
                         var opts = x.GetService<IOptions<Models.MQTTManagerOptions>>();
                         if (opts == null)
                         {
-                            throw new ArgumentException($"{nameof(opts.Value.TopicPrefix)} and {nameof(opts.Value.DiscoveryName)} are required for {nameof(MQTTGenerator)}.");
+                            throw new ArgumentException($"{nameof(opts.Value.TopicPrefix)} and {nameof(opts.Value.DiscoveryName)} are required for {nameof(Utils.MQTTGenerator)}.");
                         }
 
-                        return new MQTTGenerator(opts.Value.TopicPrefix, opts.Value.DiscoveryName);
+                        return new Utils.MQTTGenerator(opts.Value.TopicPrefix, opts.Value.DiscoveryName);
                     });
-                    services.AddSingleton<IMQTTLiason<TData, TCmd>, TMqttLiason>();
-                    services.AddHostedService<MQTTManager<TData, TCmd>>();
+                    services.AddSingleton<Interfaces.IMQTTLiason<TData, TCmd>, TMqttLiason>();
+                    services.AddHostedService<Managers.MQTTManager<TData, TCmd>>();
 
                     this.ConfigureServices(hostContext, services);
                 })
                 .ConfigureLogging((hostingContext, logging) =>
                 {
                     logging.AddConfiguration(hostingContext.Configuration.GetSection("Logging"));
-                    logging.AddConsole(c =>
+                    logging.AddSimpleConsole(c =>
                     {
                         c.TimestampFormat = "[HH:mm:ss] ";
                     });

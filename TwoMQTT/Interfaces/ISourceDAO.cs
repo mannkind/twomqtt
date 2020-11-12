@@ -1,7 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace TwoMQTT.Core.Interfaces
+namespace TwoMQTT.Interfaces
 {
     /// <summary>
     /// 

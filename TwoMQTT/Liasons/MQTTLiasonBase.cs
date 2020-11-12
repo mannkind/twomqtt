@@ -1,10 +1,8 @@
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using TwoMQTT.Core.Interfaces;
-using TwoMQTT.Core.Utils;
 
-namespace TwoMQTT.Core.Liasons
+namespace TwoMQTT.Liasons
 {
     /// <summary>
     /// 
@@ -17,7 +15,7 @@ namespace TwoMQTT.Core.Liasons
         where TData : class
         where TCommand : class
         where TQuestion : class
-        where TOpts : class, ISharedOpts<TQuestion>, new()
+        where TOpts : class, Interfaces.ISharedOpts<TQuestion>, new()
     {
         /// <summary>
         /// 
@@ -25,7 +23,7 @@ namespace TwoMQTT.Core.Liasons
         /// <param name="logger"></param>
         /// <param name="generator"></param>
         /// <param name="sharedOpts"></param>
-        public MQTTLiasonBase(ILogger<MQTTLiasonBase<TData, TCommand, TQuestion, TOpts>> logger, IMQTTGenerator generator, IOptions<TOpts> sharedOpts)
+        public MQTTLiasonBase(ILogger<MQTTLiasonBase<TData, TCommand, TQuestion, TOpts>> logger, Utils.IMQTTGenerator generator, IOptions<TOpts> sharedOpts)
         {
             this.Logger = logger;
             this.Generator = generator;
@@ -45,6 +43,6 @@ namespace TwoMQTT.Core.Liasons
         /// <summary>
         /// The MQTT generator used for things such as availability topic, state topic, command topic, etc.
         /// </summary>
-        protected readonly IMQTTGenerator Generator;
+        protected readonly Utils.IMQTTGenerator Generator;
     }
 }

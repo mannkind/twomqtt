@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace TwoMQTT.Core.Interfaces
+namespace TwoMQTT.Interfaces
 {
     /// <summary>
     /// An interface representing shared options.
@@ -13,6 +13,6 @@ namespace TwoMQTT.Core.Interfaces
         /// 
         /// </summary>
         /// <value></value>
-        List<TQuestion> Resources { get; set; }
+        List<TQuestion> Resources { get; init; }
     }
 }

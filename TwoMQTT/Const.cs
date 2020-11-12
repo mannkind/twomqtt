@@ -1,4 +1,4 @@
-namespace TwoMQTT.Core
+namespace TwoMQTT
 {
     public class Const
     {

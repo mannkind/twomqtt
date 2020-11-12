@@ -1,12 +1,10 @@
 using System.Collections.Generic;
 using System.Threading;
-using System.Threading.Channels;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using TwoMQTT.Core.Interfaces;
 
-namespace TwoMQTT.Core.Managers
+namespace TwoMQTT.Managers
 {
     /// <summary>
     /// An class representing a managed way to interact with a source.
@@ -27,14 +25,12 @@ namespace TwoMQTT.Core.Managers
         /// <param name="throttler"></param>
         public SourceManager(
             ILogger<SourceManager<TData, TCmd>> logger,
-            ChannelWriter<TData> outgoingData,
-            ChannelReader<TCmd> incomingCommand,
-            ISourceLiason<TData, TCmd> liason,
-            IThrottleManager throttler)
+            Interfaces.IIPC<TCmd, TData> ipc,
+            Interfaces.ISourceLiason<TData, TCmd> liason,
+            Interfaces.IThrottleManager throttler)
         {
             this.Logger = logger;
-            this.OutgoingData = outgoingData;
-            this.IncomingCommands = incomingCommand;
+            this.IPC = ipc;
             this.Liason = liason;
             this.Throttler = throttler;
         }
@@ -47,7 +43,7 @@ namespace TwoMQTT.Core.Managers
         protected override async Task ExecuteAsync(CancellationToken cancellationToken = default)
         {
             await Task.WhenAll(
-                this.ReadIncomingCommandsAsync(cancellationToken),
+                this.ReadIncomingAsync(cancellationToken),
                 this.PollingSourceAsync(cancellationToken)
             );
         }
@@ -58,38 +54,33 @@ namespace TwoMQTT.Core.Managers
         private readonly ILogger<SourceManager<TData, TCmd>> Logger;
 
         /// <summary>
-        /// The channel writer used to communicate data from the source system.
+        /// The IPC used internally.
         /// </summary>
-        private readonly ChannelWriter<TData> OutgoingData;
-
-        /// <summary>
-        /// The channel reader used to communicate commands to the source.
-        /// </summary>
-        private readonly ChannelReader<TCmd> IncomingCommands;
+        private readonly Interfaces.IIPC<TCmd, TData> IPC;
 
         /// <summary>
         /// The liason to the source system.
         /// </summary>
-        private readonly ISourceLiason<TData, TCmd> Liason;
+        private readonly Interfaces.ISourceLiason<TData, TCmd> Liason;
 
         /// <summary>
         /// The throttler used to delay polling the source system.
         /// </summary>
-        private readonly IThrottleManager Throttler;
+        private readonly Interfaces.IThrottleManager Throttler;
 
         /// <summary>
         /// Read incoming commands.
         /// </summary>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        private async Task ReadIncomingCommandsAsync(CancellationToken cancellationToken)
+        private async Task ReadIncomingAsync(CancellationToken cancellationToken)
         {
             this.Logger.LogInformation("Awaiting incoming commands");
-            await foreach (var item in this.IncomingCommands.ReadAllAsync(cancellationToken))
+            await this.IPC.ReadAsync(async item =>
             {
                 this.Logger.LogDebug("Received incoming command {item}", item);
                 await this.Liason.SendCommandAsync(item, cancellationToken);
-            }
+            }, cancellationToken);
             this.Logger.LogInformation("Finished awaiting incoming commands");
         }
 
@@ -125,7 +116,7 @@ namespace TwoMQTT.Core.Managers
                 }
 
                 this.Logger.LogDebug("Found {result}", result);
-                tasks.Add(this.OutgoingData.WriteAsync(result, cancellationToken).AsTask());
+                tasks.Add(this.IPC.WriteAsync(result, cancellationToken).AsTask());
             }
             await Task.WhenAll(tasks);
             this.Logger.LogDebug("Finished Polling");
