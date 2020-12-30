@@ -18,52 +18,42 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v1
 
-      - name: Build and test
-        run: |
-          dotnet build -c Release TwoMQTT
-          dotnet test --collect:"XPlat Code Coverage" TwoMQTTTest
-          bash <(curl -s https://codecov.io/bash)
+      - name: Build 
+        run: dotnet build -c Release TwoMQTT
 
-      - name: Package (Master)
-        run: dotnet pack -c Release -o output TwoMQTT
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+      - name: Test
+        run: dotnet test --collect:"XPlat Code Coverage" TwoMQTTTest
 
       - name: Package (Non-Master)
         run: dotnet pack -c Debug -o output --version-suffix="${{ env.GITHUB_REF_SLUG }}" TwoMQTT
         if: github.event_name == 'push' && github.ref != 'refs/heads/master'
 
-      - name: Set PACKAGE_FILE
-        run: echo "::set-env name=PACKAGE_FILE::$(ls output)"
-        if: github.event_name == 'push'
+      - name: Upload coverage
+        run: bash <(curl -s https://codecov.io/bash)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
 
-      - name: Set BUILD_VERSION
-        env:
-          PACKAGE_FILE: ${{ env.PACKAGE_FILE }}
-          PACKAGE: "TwoMQTT"
-          EXTENSION: ".nupkg"
+      - name: Package (Master)
+        run: dotnet pack -c Release -o output TwoMQTT
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+
+      - name: Setup envs for later
         run: |
-          VERSION_EXTENSION=${PACKAGE_FILE/$PACKAGE./}
-          VERSION=${VERSION_EXTENSION/$EXTENSION/}
-          echo "::set-env name=BUILD_VERSION::${VERSION}"
+          PACKAGE_FILE=$(ls output/*.nupkg)
+          BUILD_VERSION=${BUILD_VERSION/output\/TwoMQTT./}
+          BUILD_VERSION=${BUILD_VERSION/.nupkg/}
+          echo "PACKAGE_FILE=${PACKAGE_FILE}" >> $GITHUB_ENV
+          echo "BUILD_VERSION=${BUILD_VERSION}" >> $GITHUB_ENV
         if: github.event_name == 'push'
 
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v1
-        with:
-          name: ${{ env.PACKAGE_FILE }}
-          path: output/${{ env.PACKAGE_FILE }}
-        if: github.event_name == 'push'
-
-      - name: Upload to NuGet
+      - name: Upload package
         run: dotnet nuget push output/${{ env.PACKAGE_FILE }} -k ${{ secrets.NUGET_TOKEN }} -s https://api.nuget.org/v3/index.json
         if: github.event_name == 'push'
 
-      - name: Unilst from NuGet
+      - name: Unlist package
         env:
-          PACKAGE: "TwoMQTT"
           BUILD_VERSION: ${{ env.BUILD_VERSION }}
         run: |
-          dotnet nuget delete ${PACKAGE} ${BUILD_VERSION} --non-interactive -k ${{ secrets.NUGET_TOKEN }} -s https://api.nuget.org/v3/index.json
+          dotnet nuget delete TwoMQTT ${BUILD_VERSION} --non-interactive -k ${{ secrets.NUGET_TOKEN }} -s https://api.nuget.org/v3/index.json
         if: github.event_name == 'push'
 
       - name: Tag and push the git release
