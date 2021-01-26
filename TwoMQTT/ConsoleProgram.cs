@@ -2,15 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Threading.Channels;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using MQTTnet;
-using MQTTnet.Extensions.ManagedClient;
+using TwoMQTT.Extensions;
 
 namespace TwoMQTT
 {
@@ -21,142 +19,112 @@ namespace TwoMQTT
     /// <typeparam name="TCmd">The type representing the command to the source system. </typeparam>
     /// <typeparam name="TSourceLiason">The type representing the liason to the source system.</typeparam>
     /// <typeparam name="TMqttLiason">The type representing the liason to the mqtt broker.</typeparam>
-    public abstract class ConsoleProgram<TData, TCmd, TSourceLiason, TMqttLiason>
+    public class ConsoleProgram<TData, TCmd, TSourceLiason, TMqttLiason>
         where TData : class
         where TCmd : class
         where TSourceLiason : class, Interfaces.ISourceLiason<TData, TCmd>
         where TMqttLiason : class, Interfaces.IMQTTLiason<TData, TCmd>
     {
         /// <summary>
-        /// Initializes a new instance of the HTTPSourceDAO class.
+        /// Run the program.
         /// </summary>
         /// <param name="args"></param>
         /// <returns></returns>
-        public Task ExecuteAsync(string[] args)
+        public static Task ExecuteAsync(string[] args,
+            IDictionary<string, string>? envs = null,
+            Action<HostBuilderContext, IConfigurationBuilder>? configureAppConfiguration = null,
+            Action<HostBuilderContext, IServiceCollection>? configureServices = null,
+            Action<HostBuilderContext, ILoggingBuilder>? configureLogging = null,
+            CancellationToken cancellationToken = default)
         {
-            if (this.PrintVersion(args))
+            if (PrintVersion(args))
             {
                 return Task.CompletedTask;
             }
 
-            return this.Run(args);
+            ConfigureEnvironmentDefaults(envs);
+            return RunAsync(args, configureAppConfiguration, configureServices, configureLogging, cancellationToken);
         }
-
-        /// <summary>
-        /// Allow implementing classes to register environment defaults.
-        /// </summary>
-        protected virtual IDictionary<string, string> EnvironmentDefaults() => new Dictionary<string, string>();
-
-        /// <summary>
-        /// Allow implementing classes to register dependencies.
-        /// </summary>
-        /// <param name="hostContext"></param>
-        /// <param name="services"></param>
-        /// <returns></returns>
-        protected abstract IServiceCollection ConfigureServices(HostBuilderContext hostContext, IServiceCollection services);
 
         /// <summary>
         /// Print the version of the current assembly.
         /// </summary>
         /// <param name="args"></param>
         /// <returns></returns>
-        private bool PrintVersion(string[] args)
+        private static bool PrintVersion(string[] args)
         {
-            var param = args?.Skip(1)?.FirstOrDefault() ?? string.Empty;
+            var param = args?.ElementAtOrDefault(1);
             if (param != VERSION)
             {
                 return false;
             }
 
-            var version = Assembly.GetAssembly(this.GetType())
-                ?.GetName()
-                ?.Version
-                ?.ToString() ?? UNKNOWVERSION;
-
+            var version = Assembly.GetExecutingAssembly()?.GetName().Version?.ToString() ?? UNKNOWVERSION;
             Console.WriteLine($"v{version}");
             return true;
+        }
+
+        /// <summary>
+        /// Configure environment defaults used to configure options.
+        /// </summary>
+        /// <param name="envs"></param>
+        private static void ConfigureEnvironmentDefaults(IDictionary<string, string>? envs)
+        {
+            // Setup default environment variables
+            envs ??= new Dictionary<string, string>();
+            foreach (var env in envs)
+            {
+                var key = env.Key.Replace(":", "__");
+                if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(key)))
+                {
+                    continue;
+                }
+
+                Environment.SetEnvironmentVariable(key, env.Value);
+            }
         }
 
         /// <summary>
         /// Run the console program.
         /// </summary>
         /// <param name="args"></param>
+        /// <param name="configureAppConfiguration"></param>
+        /// <param name="configureServices"></param>
+        /// <param name="configureLogging"></param>
         /// <returns></returns>
-        private Task Run(string[] args) =>
-            this.Configure(args)
-                .RunConsoleAsync();
-
-        /// <summary>
-        /// Configure the console program.
-        /// </summary>
-        /// <param name="args"></param>
-        /// <returns></returns>
-        private IHostBuilder Configure(string[] args)
+        private static Task RunAsync(string[] args, Action<HostBuilderContext, IConfigurationBuilder>? configureAppConfiguration, Action<HostBuilderContext, IServiceCollection>? configureServices, Action<HostBuilderContext, ILoggingBuilder>? configureLogging, CancellationToken cancellationToken = default)
         {
-            // Setup default environment variables
-            foreach (var env in this.EnvironmentDefaults())
-            {
-                if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable(env.Key)))
-                {
-                    Environment.SetEnvironmentVariable(env.Key, env.Value);
-                }
-            }
-
             // Build the host
             var builder = new HostBuilder()
-                .ConfigureAppConfiguration((hostingContext, config) =>
+                .ConfigureAppConfiguration((context, config) =>
                 {
-                    config.AddJsonFile("appsettings.json", optional: true);
-                    config.AddEnvironmentVariables();
-                    config.AddCommandLine(args);
+                    config.AddJsonFile("appsettings.json", optional: true)
+                        .AddEnvironmentVariables()
+                        .AddCommandLine(args);
+
+                    configureAppConfiguration?.Invoke(context, config);
                 })
-                .ConfigureServices((hostContext, services) =>
+                .ConfigureServices((context, services) =>
                 {
-                    services.AddOptions();
+                    services.AddOptions()
+                        .AddIPC<TData, TCmd>()
+                        .AddSource<TData, TCmd, TSourceLiason>()
+                        .AddMqtt<TData, TCmd, TMqttLiason>();
 
-                    var chanOpts = new UnboundedChannelOptions
-                    {
-                        SingleReader = true,
-                        SingleWriter = true,
-                    };
-                    var data = Channel.CreateUnbounded<TData>(chanOpts);
-                    var command = Channel.CreateUnbounded<TCmd>(chanOpts);
-                    services.AddSingleton<ChannelReader<TData>>(x => data.Reader);
-                    services.AddSingleton<ChannelWriter<TData>>(x => data.Writer);
-                    services.AddSingleton<ChannelReader<TCmd>>(x => command.Reader);
-                    services.AddSingleton<ChannelWriter<TCmd>>(x => command.Writer);
-                    services.AddSingleton<Interfaces.IIPC<TData, TCmd>, Managers.IPCManager<TData, TCmd>>();
-                    services.AddSingleton<Interfaces.IIPC<TCmd, TData>, Managers.IPCManager<TCmd, TData>>();
-
-                    services.AddSingleton<Interfaces.ISourceLiason<TData, TCmd>, TSourceLiason>();
-                    services.AddHostedService<Managers.SourceManager<TData, TCmd>>();
-
-                    services.AddSingleton<IManagedMqttClient>(x => new MqttFactory().CreateManagedMqttClient());
-                    services.AddSingleton<Utils.IMQTTGenerator, Utils.MQTTGenerator>(x =>
-                    {
-                        var opts = x.GetService<IOptions<Models.MQTTManagerOptions>>();
-                        if (opts == null)
+                    configureServices?.Invoke(context, services);
+                })
+                .ConfigureLogging((context, logging) =>
+                {
+                    logging.AddConfiguration(context.Configuration.GetSection("Logging"))
+                        .AddSimpleConsole(c =>
                         {
-                            throw new ArgumentException($"{nameof(opts.Value.TopicPrefix)} and {nameof(opts.Value.DiscoveryName)} are required for {nameof(Utils.MQTTGenerator)}.");
-                        }
+                            c.TimestampFormat = "[HH:mm:ss] ";
+                        });
 
-                        return new Utils.MQTTGenerator(opts.Value.TopicPrefix, opts.Value.DiscoveryName);
-                    });
-                    services.AddSingleton<Interfaces.IMQTTLiason<TData, TCmd>, TMqttLiason>();
-                    services.AddHostedService<Managers.MQTTManager<TData, TCmd>>();
-
-                    this.ConfigureServices(hostContext, services);
-                })
-                .ConfigureLogging((hostingContext, logging) =>
-                {
-                    logging.AddConfiguration(hostingContext.Configuration.GetSection("Logging"));
-                    logging.AddSimpleConsole(c =>
-                    {
-                        c.TimestampFormat = "[HH:mm:ss] ";
-                    });
+                    configureLogging?.Invoke(context, logging);
                 });
 
-            return builder;
+            return builder.RunConsoleAsync();
         }
 
         /// <summary>
