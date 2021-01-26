@@ -1,12 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <VersionPrefix>0.9.$([System.DateTime]::UtcNow.ToString(yy))$([System.DateTime]::UtcNow.DayOfYear.ToString(000)).$([System.DateTime]::UtcNow.ToString(HHmm))$([System.Math]::Floor($([MSBuild]::Divide($([System.DateTime]::UtcNow.Second), 6))))</VersionPrefix>
+    <VersionPrefix>0.10.$([System.DateTime]::UtcNow.ToString(yy))$([System.DateTime]::UtcNow.DayOfYear.ToString(000)).$([System.DateTime]::UtcNow.ToString(HHmm))$([System.Math]::Floor($([MSBuild]::Divide($([System.DateTime]::UtcNow.Second), 6))))</VersionPrefix>
     <OutputType>library</OutputType>
     <TargetFramework>net5.0</TargetFramework>
     <TargetLanguage>9.0</TargetLanguage>
     <Nullable>enable</Nullable>
     <IncludeSymbols>true</IncludeSymbols>
+    <IncludeSource>true</IncludeSource>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <RepositoryUrl>https://github.com/mannkind/twomqtt</RepositoryUrl>
   </PropertyGroup>
@@ -17,6 +18,7 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="5.0.*" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="5.0.*" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="5.0.*" />
+    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="5.0.*" />
     <PackageReference Include="MQTTnet" Version="3.0.8" />
     <PackageReference Include="MQTTnet.Extensions.ManagedClient" Version="3.0.8" />
