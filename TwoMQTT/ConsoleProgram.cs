@@ -59,7 +59,7 @@ namespace TwoMQTT
                 return false;
             }
 
-            var version = Assembly.GetExecutingAssembly()?.GetName().Version?.ToString() ?? UNKNOWVERSION;
+            var version = Assembly.GetAssembly(typeof(TMqttLiason))?.GetName().Version?.ToString() ?? UNKNOWVERSION;
             Console.WriteLine($"v{version}");
             return true;
         }
