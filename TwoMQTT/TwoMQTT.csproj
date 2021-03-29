@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <VersionPrefix>0.10.$([System.DateTime]::UtcNow.ToString(yy))$([System.DateTime]::UtcNow.DayOfYear.ToString(000)).$([System.DateTime]::UtcNow.ToString(HHmm))$([System.Math]::Floor($([MSBuild]::Divide($([System.DateTime]::UtcNow.Second), 6))))</VersionPrefix>
+    <VersionPrefix>0.11.$([System.DateTime]::UtcNow.ToString(yy))$([System.DateTime]::UtcNow.DayOfYear.ToString(000)).$([System.DateTime]::UtcNow.ToString(HHmm))$([System.Math]::Floor($([MSBuild]::Divide($([System.DateTime]::UtcNow.Second), 6))))</VersionPrefix>
     <OutputType>library</OutputType>
     <TargetFramework>net5.0</TargetFramework>
     <TargetLanguage>9.0</TargetLanguage>
@@ -18,11 +18,11 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="5.0.*" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="5.0.*" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="5.0.*" />
-    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="5.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="5.0.*" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="5.0.*" />
     <PackageReference Include="MQTTnet" Version="3.*" />
     <PackageReference Include="MQTTnet.Extensions.ManagedClient" Version="3.*" />
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.*" />
   </ItemGroup>
 
 </Project>

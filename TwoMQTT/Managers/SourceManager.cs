@@ -27,7 +27,7 @@ namespace TwoMQTT.Managers
             ILogger<SourceManager<TData, TCmd>> logger,
             Interfaces.IIPC<TCmd, TData> ipc,
             Interfaces.ISourceLiason<TData, TCmd> liason,
-            Interfaces.IThrottleManager throttler)
+            Interfaces.IThrottleManager? throttler = null)
         {
             this.Logger = logger;
             this.IPC = ipc;
@@ -44,7 +44,7 @@ namespace TwoMQTT.Managers
         {
             await Task.WhenAll(
                 this.ReadIncomingAsync(cancellationToken),
-                this.PollingSourceAsync(cancellationToken)
+                this.ReadSourceAsync(cancellationToken)
             );
         }
 
@@ -66,7 +66,7 @@ namespace TwoMQTT.Managers
         /// <summary>
         /// The throttler used to delay polling the source system.
         /// </summary>
-        private readonly Interfaces.IThrottleManager Throttler;
+        private readonly Interfaces.IThrottleManager? Throttler;
 
         /// <summary>
         /// Read incoming commands.
@@ -85,30 +85,46 @@ namespace TwoMQTT.Managers
         }
 
         /// <summary>
-        /// Poll the source system.
+        /// Read the source.
         /// </summary>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        private async Task PollingSourceAsync(CancellationToken cancellationToken)
+        private async Task ReadSourceAsync(CancellationToken cancellationToken)
         {
-            this.Logger.LogInformation("Polling source");
-            while (!cancellationToken.IsCancellationRequested)
-            {
-                await this.PollAsync(cancellationToken);
-                await this.DelayAsync(cancellationToken);
-            }
-            this.Logger.LogInformation("Finished polling source");
+            var method = this.Throttler == null ? "awaiting" : "Polling";
+            this.Logger.LogInformation($"Started {method} source");
+            
+            var srcTask = this.Throttler == null ?
+                this.ReceiveDataAsync(cancellationToken) :
+                this.PollDataAsync(cancellationToken);
+
+            await srcTask;
+            this.Logger.LogInformation($"Finished {method} source");
         }
 
         /// <summary>
         /// Poll the source.
         /// </summary>
         /// <param name="cancellationToken"></param>
-        private async Task PollAsync(CancellationToken cancellationToken = default)
+        /// <returns></returns>
+        private async Task PollDataAsync(CancellationToken cancellationToken)
         {
-            this.Logger.LogDebug("Started Polling");
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                await this.ReceiveDataAsync(cancellationToken);
+                await this.DelayAsync(cancellationToken);
+            }
+        }
+
+        /// <summary>
+        /// Receive data from the source.
+        /// </summary>
+        /// <param name="cancellationToken"></param>
+        private async Task ReceiveDataAsync(CancellationToken cancellationToken = default)
+        {
+            this.Logger.LogDebug("Started receiving data");
             var tasks = new List<Task>();
-            await foreach (var result in this.Liason.FetchAllAsync(cancellationToken))
+            await foreach (var result in this.Liason.ReceiveDataAsync(cancellationToken))
             {
                 if (result == null)
                 {
@@ -119,13 +135,13 @@ namespace TwoMQTT.Managers
                 tasks.Add(this.IPC.WriteAsync(result, cancellationToken).AsTask());
             }
             await Task.WhenAll(tasks);
-            this.Logger.LogDebug("Finished Polling");
+            this.Logger.LogDebug("Finished receiving data");
         }
 
         /// <summary>
         /// Delay polling the source.
         /// </summary>
         private Task DelayAsync(CancellationToken cancellationToken = default) =>
-            this.Throttler.DelayAsync(cancellationToken);
+            this.Throttler?.DelayAsync(cancellationToken) ?? Task.CompletedTask;
     }
 }

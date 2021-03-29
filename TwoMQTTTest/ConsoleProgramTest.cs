@@ -40,7 +40,7 @@ namespace TwoMQTTTest
 
     public class TestSourceLiason : ISourceLiason<object, object>
     {
-        public IAsyncEnumerable<object> FetchAllAsync(CancellationToken cancellationToken = default)
+        public IAsyncEnumerable<object> ReceiveDataAsync(CancellationToken cancellationToken = default)
         {
             throw new NotImplementedException();
         }

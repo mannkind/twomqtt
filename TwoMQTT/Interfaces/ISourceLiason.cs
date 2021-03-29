@@ -14,9 +14,9 @@ namespace TwoMQTT.Interfaces
         where TCmd : class
     {
         /// <summary>
-        /// Fetch all records from the source.
+        /// Receive data from the source.
         /// </summary>
-        IAsyncEnumerable<TData?> FetchAllAsync(CancellationToken cancellationToken = default);
+        IAsyncEnumerable<TData?> ReceiveDataAsync(CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Publish commands to the source.

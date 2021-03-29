@@ -38,7 +38,7 @@ namespace TwoMQTTTest.Managers
             await obj.StopAsync(ct);
 
             client.Verify(x => x.StartAsync(It.IsAny<IManagedMqttClientOptions>()), Times.AtMostOnce());
-            client.Verify(x => x.SubscribeAsync(It.IsAny<IEnumerable<MQTTnet.TopicFilter>>()), Times.AtMostOnce());
+            client.Verify(x => x.SubscribeAsync(It.IsAny<IEnumerable<MQTTnet.MqttTopicFilter>>()), Times.AtMostOnce());
             client.Verify(x => x.PublishAsync(It.IsAny<MQTTnet.MqttApplicationMessage>(), It.IsAny<CancellationToken>()), Times.AtMostOnce());
             liason.Verify(x => x.Discoveries(), Times.AtMostOnce());
             liason.Verify(x => x.Subscriptions(), Times.AtMostOnce());

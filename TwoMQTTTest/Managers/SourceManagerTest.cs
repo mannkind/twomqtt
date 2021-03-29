@@ -30,8 +30,8 @@ namespace TwoMQTTTest.Managers
             await Task.Delay(5000);
             await obj.StopAsync(ct);
 
-            liason.Verify(x => x.FetchAllAsync(It.IsAny<CancellationToken>()), Times.AtLeastOnce());
-            liason.Verify(x => x.FetchAllAsync(It.IsAny<CancellationToken>()), Times.AtLeastOnce());
+            liason.Verify(x => x.ReceiveDataAsync(It.IsAny<CancellationToken>()), Times.AtLeastOnce());
+            liason.Verify(x => x.ReceiveDataAsync(It.IsAny<CancellationToken>()), Times.AtLeastOnce());
             throttleManager.Verify(x => x.DelayAsync(It.IsAny<CancellationToken>()), Times.AtMostOnce());
         }
     }
