@@ -12,6 +12,7 @@ using MQTTnet;
 using MQTTnet.Client.Options;
 using MQTTnet.Extensions.ManagedClient;
 using Newtonsoft.Json;
+using TwoMQTT.Extensions;
 
 namespace TwoMQTT.Managers
 {
@@ -51,11 +52,15 @@ namespace TwoMQTT.Managers
             this.Opts = opts.Value;
             this.Logger.LogInformation(
                 "Broker:            {broker}\n" +
+                "Username:          {username}\n" +
+                "Password:          {password}\n" +
                 "TopicPrefix:       {topicPrefix}\n" +
                 "DiscoveryEnabled:  {discoveryEnabled}\n" +
                 "DiscoveryPrefix:   {discoveryPrefix}\n" +
                 "DiscoveryName:     {discoveryName}\n",
                 opts.Value.Broker,
+                opts.Value.Username,
+                !string.IsNullOrEmpty(opts.Value.Password) ? "<REDACTED>" : string.Empty,
                 opts.Value.TopicPrefix,
                 opts.Value.DiscoveryEnabled,
                 opts.Value.DiscoveryPrefix,
@@ -158,6 +163,7 @@ namespace TwoMQTT.Managers
                 .WithClientOptions(
                     new MqttClientOptionsBuilder()
                         .WithTcpServer(Opts.Broker)
+                        .WithConditionalCredentials(!string.IsNullOrEmpty(Opts.Username), Opts.Username, Opts.Password)
                         .WithWillMessage(new MqttApplicationMessageBuilder()
                             .WithTopic(this.Generator.AvailabilityTopic())
                             .WithPayload(Const.OFFLINE)

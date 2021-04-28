@@ -6,6 +6,8 @@ namespace TwoMQTT.Models
     public record MQTTManagerOptions
     {
         public string Broker { get; init; } = DEFAULTBROKER;
+        public string Username { get; init; } = string.Empty;
+        public string? Password { get; init; } = null;
         public string TopicPrefix { get; init; } = string.Empty;
         public bool DiscoveryEnabled { get; init; } = true;
         public string DiscoveryPrefix { get; init; } = DEFAULTDISCOVERYPREFIX;
