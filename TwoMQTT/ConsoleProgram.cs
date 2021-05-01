@@ -74,7 +74,7 @@ namespace TwoMQTT
             envs ??= new Dictionary<string, string>();
             foreach (var env in envs)
             {
-                var key = env.Key.Replace(":", "__");
+                var key = env.Key.Replace(":", "__").ToUpper();
                 if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(key)))
                 {
                     continue;
