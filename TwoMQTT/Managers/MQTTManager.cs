@@ -283,7 +283,7 @@ namespace TwoMQTT.Managers
             var topics = filters.Select(topic =>
             {
                 this.Logger.LogDebug("Found topic {topic}", topic);
-                return new TopicFilterBuilder().WithTopic(topic).Build();
+                return new MqttTopicFilterBuilder().WithTopic(topic).Build();
             });
 
             await this.Client.SubscribeAsync(topics);
