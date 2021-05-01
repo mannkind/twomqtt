@@ -12,7 +12,7 @@ namespace TwoMQTT.Models
         public bool DiscoveryEnabled { get; init; } = true;
         public string DiscoveryPrefix { get; init; } = DEFAULTDISCOVERYPREFIX;
         public string DiscoveryName { get; init; } = string.Empty;
-
+        public bool PublishDeduplicate { get; init; } = true;
         private const string DEFAULTBROKER = "test.mosquitto.org";
         private const string DEFAULTDISCOVERYPREFIX = "homeassistant";
     }

@@ -295,7 +295,7 @@ namespace TwoMQTT.Managers
         /// </summary>
         private async Task PublishAsync(string topic, string payload, CancellationToken cancellationToken = default)
         {
-            if (this.KnownMessages.ContainsKey(topic) && this.KnownMessages[topic] == payload)
+            if (Opts.PublishDeduplicate && this.KnownMessages.ContainsKey(topic) && this.KnownMessages[topic] == payload)
             {
                 this.Logger.LogDebug("Duplicate '{payload}' found on '{topic}'", payload, topic);
                 return;
