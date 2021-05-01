@@ -147,10 +147,6 @@ namespace TwoMQTT.Managers
                 this.MessageReceivedCallback(cancellationToken)
             );
             await this.ConnectAsync(cancellationToken);
-            await Task.WhenAll(
-                this.HandleSubscribeAsync(cancellationToken),
-                this.HandleDiscoveryAsync(cancellationToken)
-            );
         }
 
         /// <summary>
@@ -185,13 +181,17 @@ namespace TwoMQTT.Managers
         {
             this.Client.UseConnectedHandler(async e =>
             {
-                await this.Client.PublishAsync(
-                    new MqttApplicationMessageBuilder()
-                        .WithTopic(this.Generator.AvailabilityTopic())
-                        .WithPayload(Const.ONLINE)
-                        .WithRetainFlag()
-                        .Build(),
-                    cancellationToken
+                await Task.WhenAll(
+                    this.HandleSubscribeAsync(cancellationToken),
+                    this.HandleDiscoveryAsync(cancellationToken),
+                    this.Client.PublishAsync(
+                        new MqttApplicationMessageBuilder()
+                            .WithTopic(this.Generator.AvailabilityTopic())
+                            .WithPayload(Const.ONLINE)
+                            .WithRetainFlag()
+                            .Build(),
+                        cancellationToken
+                    )
                 );
             });
 
