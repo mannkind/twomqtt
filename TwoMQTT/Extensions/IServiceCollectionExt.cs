@@ -3,7 +3,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using MQTTnet;
+using MQTTnet.Diagnostics;
 using MQTTnet.Extensions.ManagedClient;
+using TwoMQTT.Managers;
 
 namespace TwoMQTT.Extensions
 {
@@ -55,7 +57,12 @@ namespace TwoMQTT.Extensions
             where TCmd : class
             where TMqttLiason : class, Interfaces.IMQTTLiason<TData, TCmd> =>
             services
-                .AddSingleton<IManagedMqttClient>(x => new MqttFactory().CreateManagedMqttClient())
+                .AddSingleton<IMqttNetLogger, Loggers.MQTTNetLogger>()
+                .AddSingleton<IManagedMqttClient>(x => 
+                {
+                    var logger = x.GetRequiredService<IMqttNetLogger>();
+                    return new MqttFactory().CreateManagedMqttClient(logger);
+                })
                 .AddSingleton<Utils.IMQTTGenerator, Utils.MQTTGenerator>(x =>
                 {
                     var opts = x.GetRequiredService<IOptions<Models.MQTTManagerOptions>>();
