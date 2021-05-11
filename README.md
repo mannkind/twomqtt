@@ -9,6 +9,7 @@ Useful classes to implement something like an application fetchs data from some 
 
 ## Known Implementations
 
+* <https://github.com/mannkind/ecowitt2mqtt>
 * <https://github.com/mannkind/mysensorsbootloader2mqtt>
 * <https://github.com/mannkind/litterrobot2mqtt>
 * <https://github.com/mannkind/seattlewaste2mqtt>
