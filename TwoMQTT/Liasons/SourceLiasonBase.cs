@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -18,7 +16,7 @@ namespace TwoMQTT.Liasons
         where TQuestion : class
         where TOpts : class, Interfaces.ISharedOpts<TQuestion>, new()
     {
-        public SourceLiasonBase(ILogger<PollingSourceLiasonBase<TData, TQuestion, TSource, TOpts>> logger, TSource sourceDAO, IOptions<TOpts> sharedOpts) : 
+        public SourceLiasonBase(ILogger<PollingSourceLiasonBase<TData, TQuestion, TSource, TOpts>> logger, TSource sourceDAO, IOptions<TOpts> sharedOpts) :
             base(logger, sourceDAO, sharedOpts)
         {
         }

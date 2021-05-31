@@ -1,15 +1,7 @@
-using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
-using System.Web;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using TwoMQTT.Interfaces;
 
 namespace TwoMQTT.Liasons
@@ -21,7 +13,7 @@ namespace TwoMQTT.Liasons
     public abstract class PushSourceLiasonBase<TData, TResponse, TSource>
         where TData : class
         where TResponse : class
-        where TSource: IPushingSourceDAO<TResponse>
+        where TSource : IPushingSourceDAO<TResponse>
     {
         public PushSourceLiasonBase(ILogger<PushSourceLiasonBase<TData, TResponse, TSource>> logger, TSource sourceDAO)
         {
