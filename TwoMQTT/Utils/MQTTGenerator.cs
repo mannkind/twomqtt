@@ -18,6 +18,13 @@ namespace TwoMQTT.Utils
         string BooleanOnOff(bool val);
 
         /// <summary>
+        /// Convert a boolean to an appropriate home/not_home string.
+        /// </summary>
+        /// <param name="val"></param>
+        /// <returns></returns>
+        string BooleanHomeNotHome(bool val);
+
+        /// <summary>
         /// Generate the command topic.
         /// </summary>
         string CommandTopic(string slug, string sensor = "");
@@ -56,6 +63,9 @@ namespace TwoMQTT.Utils
 
         /// <inheritdoc />
         public string BooleanOnOff(bool val) => val ? Const.ON : Const.OFF;
+
+        /// <inheritdoc />
+        public string BooleanHomeNotHome(bool val) => val ? Const.HOME : Const.NOTHOME;
 
         /// <inheritdoc />
         public string AvailabilityTopic() => $"{this.TopicPrefix}/status";

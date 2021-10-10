@@ -13,6 +13,16 @@ namespace TwoMQTT
         public const string OFF = "OFF";
 
         /// <summary>
+        /// Home Assistant's default value for 'home'
+        /// </summary>
+        public const string HOME = "home";
+
+        /// <summary>
+        /// Home Assistant's default value for 'not_home'
+        /// </summary>
+        public const string NOTHOME = "not_home";
+
+        /// <summary>
         /// Home Assistant's default value for 'online'
         /// </summary>
         public const string ONLINE = "online";
@@ -36,6 +46,11 @@ namespace TwoMQTT
         /// Home Assistant's default word to describe a sensor with only two values
         /// </summary>
         public const string BINARY_SENSOR = "binary_sensor";
+
+        /// <summary>
+        /// Home Assistant's default word to describe a tracked device
+        /// </summary>
+        public const string DEVICE_TRACKER = "device_tracker";
 
     }
 }

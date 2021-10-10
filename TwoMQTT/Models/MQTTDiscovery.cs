@@ -287,6 +287,10 @@ namespace TwoMQTT.Models
         [JsonProperty("payload_disarm")]
         [DefaultValue("")]
         public string PayloadDisarm { get; init; } = string.Empty;
+        
+        [JsonProperty("payload_home")]
+        [DefaultValue("")]
+        public string PayloadHome { get; init; } = string.Empty;
 
         [JsonProperty("payload_high_speed")]
         [DefaultValue("")]
@@ -307,6 +311,10 @@ namespace TwoMQTT.Models
         [JsonProperty("payload_not_available")]
         [DefaultValue("")]
         public string PayloadNotAvailable { get; init; } = string.Empty;
+
+        [JsonProperty("payload_not_home")]
+        [DefaultValue("")]
+        public string PayloadNotHome { get; init; } = string.Empty;
 
         [JsonProperty("payload_off")]
         [DefaultValue("")]
