@@ -392,6 +392,10 @@ namespace TwoMQTT.Models
         [DefaultValue("")]
         public string PositionTopic { get; init; } = string.Empty;
 
+        [JsonProperty("source_type")]
+        [DefaultValue("")]
+        public string SourceType { get; init; } = string.Empty;
+
         [JsonProperty("speed_command_topic")]
         [DefaultValue("")]
         public string SpeedCommandTopic { get; init; } = string.Empty;
