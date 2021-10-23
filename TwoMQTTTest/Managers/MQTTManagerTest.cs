@@ -25,6 +25,7 @@ namespace TwoMQTTTest.Managers
             var outgoingCommand = Channel.CreateUnbounded<object>();
             var ipc = new IPCManager<object, object>(incomingData, outgoingCommand);
             var client = new Moq.Mock<IManagedMqttClient>();
+            client.SetupGet(x => x.IsStarted).Returns(true);
             var generator = new Moq.Mock<IMQTTGenerator>();
             var liason = new Moq.Mock<IMQTTLiason<object, object>>();
             var opts = Options.Create(new MQTTManagerOptions());
