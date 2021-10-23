@@ -15,13 +15,13 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.*" PrivateAssets="All"/>
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="6.0.0-preview.7.21377.19" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="6.0.0-preview.7.21377.19" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0-preview.7.21377.19" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="6.0.0-preview.7.21377.19" />
-    <PackageReference Include="Microsoft.Extensions.Options" Version="6.0.0-preview.7.21377.19" />
-    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="6.0.0-preview.7.21377.19" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.0-preview.7.21377.19" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="6.*-rc.*" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="6.*-rc.*" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.*-rc.*" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="6.*-rc.*" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="6.*-rc.*" />
+    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="6.*-rc.*" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.*-rc.*" />
     <PackageReference Include="MQTTnet" Version="3.*" />
     <PackageReference Include="MQTTnet.Extensions.ManagedClient" Version="3.*" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.*" />
