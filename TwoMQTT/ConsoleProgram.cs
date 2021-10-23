@@ -124,7 +124,7 @@ namespace TwoMQTT
                     configureLogging?.Invoke(context, logging);
                 });
 
-            return builder.RunConsoleAsync();
+            return builder.RunConsoleAsync(cancellationToken);
         }
 
         /// <summary>
