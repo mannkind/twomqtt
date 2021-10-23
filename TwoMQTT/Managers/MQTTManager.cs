@@ -76,8 +76,8 @@ namespace TwoMQTT.Managers
         protected override async Task ExecuteAsync(CancellationToken cancellationToken = default)
         {
             await Task.WhenAll(
-                ReadIncomingAsync(cancellationToken),
-                MQTTSetupAsync(cancellationToken)
+                MQTTSetupAsync(cancellationToken),
+                ReadIncomingAsync(cancellationToken)
             );
         }
 
@@ -116,6 +116,8 @@ namespace TwoMQTT.Managers
         /// </summary>
         private readonly ConcurrentDictionary<string, string> KnownMessages = new ConcurrentDictionary<string, string>();
 
+        private readonly int StartedDelayMS = 503;
+
         /// <summary>
         /// Read incoming messages.
         /// </summary>
@@ -124,6 +126,12 @@ namespace TwoMQTT.Managers
         private async Task ReadIncomingAsync(CancellationToken cancellationToken)
         {
             this.Logger.LogInformation("Awaiting incoming data");
+            while (!this.Client.IsStarted)
+            {
+                this.Logger.LogDebug("Waiting a moment for the MQTT client to start");
+                await Task.Delay(this.StartedDelayMS);
+            }
+
             await this.IPC.ReadAsync(async item =>
             {
                 this.Logger.LogDebug("Started publishing data for {item}", item);
@@ -184,14 +192,7 @@ namespace TwoMQTT.Managers
                 await Task.WhenAll(
                     this.HandleSubscribeAsync(cancellationToken),
                     this.HandleDiscoveryAsync(cancellationToken),
-                    this.Client.PublishAsync(
-                        new MqttApplicationMessageBuilder()
-                            .WithTopic(this.Generator.AvailabilityTopic())
-                            .WithPayload(Const.ONLINE)
-                            .WithRetainFlag()
-                            .Build(),
-                        cancellationToken
-                    )
+                    this.Client.PublishAsync(this.GenerateAvailabilityMessage(Const.ONLINE), cancellationToken)
                 );
             });
 
@@ -209,6 +210,15 @@ namespace TwoMQTT.Managers
             {
                 var topic = e.ApplicationMessage.Topic;
                 var payload = e.ApplicationMessage.ConvertPayloadToString();
+
+                // Another instance went offline; republish that we're still online
+                if (topic == this.Generator.AvailabilityTopic() && payload == Const.OFFLINE)
+                {
+                    await this.Client.PublishAsync(this.GenerateAvailabilityMessage(Const.ONLINE), cancellationToken);
+                    return;
+                }
+
+                // Handle commands
                 var cmds = this.Liason.MapCommand(topic, payload);
                 var tasks = cmds.Select(cmd =>
                     this.IPC.WriteAsync(cmd, cancellationToken).AsTask()
@@ -227,7 +237,8 @@ namespace TwoMQTT.Managers
         /// </summary>
         private Task HandleSubscribeAsync(CancellationToken cancellationToken = default)
         {
-            var topics = this.Liason.Subscriptions();
+            var topics = this.Liason.Subscriptions()
+                .Concat(new[] { this.Generator.AvailabilityTopic() });
             return this.SubscribeAsync(topics, cancellationToken);
         }
 
@@ -313,5 +324,12 @@ namespace TwoMQTT.Managers
 
             this.KnownMessages[topic] = payload;
         }
+
+        private MqttApplicationMessage GenerateAvailabilityMessage(string state) =>
+                new MqttApplicationMessageBuilder()
+                    .WithTopic(this.Generator.AvailabilityTopic())
+                    .WithPayload(state)
+                    .WithRetainFlag()
+                    .Build();
     }
 }
