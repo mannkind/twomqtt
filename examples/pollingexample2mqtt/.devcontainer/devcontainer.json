@@ -1,0 +1,13 @@
+{
+  "name": "twomqtt",
+  "dockerFile": "Dockerfile",
+  "settings": {
+    "csharpsortusings.sort.usings.splitGroups": false
+  },
+  "remoteUser": "vscode",
+  "extensions": [
+    "ms-dotnettools.csharp",
+    "k--kato.docomment",
+    "jongrant.csharpsortusings"
+  ]
+}
