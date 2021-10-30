@@ -1,0 +1,20 @@
+name: Build Multi-Arch Docker Image
+inputs:
+  image:
+    required: true
+  tag:
+    required: true
+runs:
+  using: "composite"
+  steps:
+      - name: Setup docker buildx
+        uses: crazy-max/ghaction-docker-buildx@v1
+        with:
+          version: latest
+
+      - name: Build and push docker images (Main)
+        env:
+          DOCKER_CLI_EXPERIMENTAL: "enabled"
+        run: |
+          echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
+          docker buildx build --push --platform=linux/amd64,linux/arm64,linux/arm/v7 -t "${{ inputs.image }}:${{ inputs.tag }}" .

@@ -1,0 +1,34 @@
+name: Build/Test Dotnet
+inputs:
+  dotnet_version:
+    default: 6.0.x
+    required: true
+  project:
+    required: true
+  test_project:
+    required: true
+outputs:
+  version: 
+    description: The generated version of the project
+    value: ${{ steps.version.outputs.version }}
+runs:
+  using: "composite"
+  steps:
+      - name: Set up dotnet
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: ${{ inputs.dotnet_version }}
+          include-prerelease: true
+
+      - name: Build ${{ inputs.project }}
+        shell: bash
+        run: dotnet build -c Release -o output ${{ inputs.project }}
+
+      - name: Test ${{ inputs.test_project }}
+        shell: bash
+        run: dotnet test --collect:"XPlat Code Coverage" ${{ inputs.test_project }}
+
+      - name: Obtain ${{ inputs.project }} Version
+        id: version
+        shell: bash
+        run: echo "::set-output name=version::$(./output/${{ inputs.project }} -- version)"
