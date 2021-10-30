@@ -13,6 +13,7 @@ runs:
           version: latest
 
       - name: Build and push docker images (Main)
+        shell: bash
         env:
           DOCKER_CLI_EXPERIMENTAL: "enabled"
         run: |
