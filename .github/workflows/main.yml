@@ -43,8 +43,8 @@ jobs:
           PACKAGE_FILE=$(ls output/*.nupkg)
           BUILD_VERSION=${PACKAGE_FILE/output\/TwoMQTT./}
           BUILD_VERSION=${BUILD_VERSION/.nupkg/}
-          run: echo "::set-output name=package::$PACKAGE_FILE"
-          run: echo "::set-output name=version::$BUILD_VERSION"
+          echo "::set-output name=package::$PACKAGE_FILE"
+          echo "::set-output name=version::$BUILD_VERSION"
         if: github.event_name == 'push'
 
       - name: Upload package
