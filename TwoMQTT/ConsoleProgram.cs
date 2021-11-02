@@ -118,7 +118,7 @@ public class ConsoleProgram<TData, TCmd, TSourceLiason, TMqttLiason>
                 logging.AddConfiguration(context.Configuration.GetSection("Logging"))
                     .AddSimpleConsole(c =>
                     {
-                        c.TimestampFormat = "[HH:mm:ss] ";
+                        c.TimestampFormat = "[yyyy-MM-dd HH:mm:ss] ";
                     });
 
                 configureLogging?.Invoke(context, logging);
