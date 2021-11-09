@@ -5,7 +5,7 @@ on:
 jobs:
   all:
     name: Build, Test, Deploy, Tag
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
 
     steps:
       - uses: rlespinasse/github-slug-action@1.1.1
@@ -13,7 +13,8 @@ jobs:
       - name: Set up dotnet
         uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: '5.0.x'
+          dotnet-version: '6.0.x'
+          include-prerelease: true
 
       - name: Check out code
         uses: actions/checkout@v2
@@ -24,42 +25,41 @@ jobs:
       - name: Test
         run: dotnet test --collect:"XPlat Code Coverage" TwoMQTTTest
 
-      - name: Package (Non-Main)
-        run: dotnet pack -c Debug -o output --version-suffix="${{ env.GITHUB_REF_SLUG }}" TwoMQTT
-        if: github.event_name == 'push' && github.ref != 'refs/heads/main'
-
       - name: Upload coverage
         run: bash <(curl -s https://codecov.io/bash)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+      - name: Package (Non-Main)
+        run: dotnet pack -c Debug -o output --version-suffix="${{ env.GITHUB_REF_SLUG }}" TwoMQTT
+        if: github.event_name == 'push' && github.ref != 'refs/heads/main'
 
       - name: Package (Main)
         run: dotnet pack -c Release -o output TwoMQTT
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
-      - name: Setup envs for later
+      - name: Setup outputs for later
+        id: var
         run: |
           PACKAGE_FILE=$(ls output/*.nupkg)
           BUILD_VERSION=${PACKAGE_FILE/output\/TwoMQTT./}
           BUILD_VERSION=${BUILD_VERSION/.nupkg/}
-          echo "PACKAGE_FILE=${PACKAGE_FILE}" >> $GITHUB_ENV
-          echo "BUILD_VERSION=${BUILD_VERSION}" >> $GITHUB_ENV
+          echo "::set-output name=package::$PACKAGE_FILE"
+          echo "::set-output name=version::$BUILD_VERSION"
         if: github.event_name == 'push'
 
       - name: Upload package
-        run: dotnet nuget push ${{ env.PACKAGE_FILE }} -k ${{ secrets.NUGET_TOKEN }} -s https://api.nuget.org/v3/index.json
+        run: dotnet nuget push ${{ steps.var.outputs.package }} -k ${{ secrets.NUGET_TOKEN }} -s https://api.nuget.org/v3/index.json
         if: github.event_name == 'push'
 
       - name: Unlist package
         env:
-          BUILD_VERSION: ${{ env.BUILD_VERSION }}
+          NUGET_TOKEN: ${{ secrets.NUGET_TOKEN }}
         run: |
-          dotnet nuget delete TwoMQTT ${BUILD_VERSION} --non-interactive -k ${{ secrets.NUGET_TOKEN }} -s https://api.nuget.org/v3/index.json
+          dotnet nuget delete TwoMQTT ${{ steps.var.outputs.version }} --non-interactive -k ${{ secrets.NUGET_TOKEN }} -s https://api.nuget.org/v3/index.json
         if: github.event_name == 'push'
 
       - name: Tag and push the git release
-        env:
-          BUILD_VERSION: ${{ env.BUILD_VERSION }}
         run: |
-          git tag -f $BUILD_VERSION
+          git tag -f ${{ steps.var.outputs.version }}
           git push --tags
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'

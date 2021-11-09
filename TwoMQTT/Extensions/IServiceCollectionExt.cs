@@ -3,65 +3,121 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using MQTTnet;
+using MQTTnet.Diagnostics.Logger;
 using MQTTnet.Extensions.ManagedClient;
+using TwoMQTT.Managers;
 
-namespace TwoMQTT.Extensions
+namespace TwoMQTT.Extensions;
+
+/// <summary>
+/// Extensions for classes implementing IServiceCollection
+/// </summary>
+public static class IServiceCollectionExt
 {
     /// <summary>
-    /// Extensions for classes implementing IServiceCollection
+    /// Register options for a given configuration section.
     /// </summary>
-    public static class IServiceCollectionExt
+    /// <typeparam name="TOpts"></typeparam>
+    public static IServiceCollection AddOptions<TOpts>(
+        this IServiceCollection services,
+        string section,
+        IConfiguration configuration) where TOpts : class => services
+            .AddOptions<TOpts>()
+            .Bind(configuration.GetSection(section))
+            .ValidateDataAnnotations()
+            .Services;
+
+    /// <summary>
+    /// Register bidirectional, interprocess communication.
+    /// </summary>
+    /// <param name="services"></param>
+    /// <typeparam name="TData"></typeparam>
+    /// <typeparam name="TCmd"></typeparam>
+    /// <returns></returns>
+    public static IServiceCollection AddIPC<TData, TCmd>(this IServiceCollection services)
+        where TData : class
+        where TCmd : class
     {
-        public static IServiceCollection AddOptions<TOpts>(
-            this IServiceCollection services,
-            string section,
-            IConfiguration configuration) where TOpts : class => services
-                .AddOptions<TOpts>()
-                .Bind(configuration.GetSection(section))
-                .ValidateDataAnnotations()
-                .Services;
 
-        public static IServiceCollection AddIPC<TData, TCmd>(this IServiceCollection services)
-            where TData : class
-            where TCmd : class
-        {
-            var chanOpts = new UnboundedChannelOptions
-            {
-                SingleReader = true,
-                SingleWriter = true,
-            };
-            var data = Channel.CreateUnbounded<TData>(chanOpts);
-            var command = Channel.CreateUnbounded<TCmd>(chanOpts);
-
-            return services
-                .AddSingleton<ChannelReader<TData>>(x => data.Reader)
-                .AddSingleton<ChannelWriter<TData>>(x => data.Writer)
-                .AddSingleton<ChannelReader<TCmd>>(x => command.Reader)
-                .AddSingleton<ChannelWriter<TCmd>>(x => command.Writer)
-                .AddSingleton<Interfaces.IIPC<TData, TCmd>, Managers.IPCManager<TData, TCmd>>()
-                .AddSingleton<Interfaces.IIPC<TCmd, TData>, Managers.IPCManager<TCmd, TData>>();
-        }
-
-        public static IServiceCollection AddSource<TData, TCmd, TSourceLiason>(this IServiceCollection services)
-            where TData : class
-            where TCmd : class
-            where TSourceLiason : class, Interfaces.ISourceLiason<TData, TCmd> =>
-            services
-                .AddSingleton<Interfaces.ISourceLiason<TData, TCmd>, TSourceLiason>()
-                .AddHostedService<Managers.SourceManager<TData, TCmd>>();
-
-        public static IServiceCollection AddMqtt<TData, TCmd, TMqttLiason>(this IServiceCollection services)
-            where TData : class
-            where TCmd : class
-            where TMqttLiason : class, Interfaces.IMQTTLiason<TData, TCmd> =>
-            services
-                .AddSingleton<IManagedMqttClient>(x => new MqttFactory().CreateManagedMqttClient())
-                .AddSingleton<Utils.IMQTTGenerator, Utils.MQTTGenerator>(x =>
+        return services
+            .AddSingleton<Channel<TData>>(x =>
+                Channel.CreateUnbounded<TData>(new UnboundedChannelOptions
                 {
-                    var opts = x.GetRequiredService<IOptions<Models.MQTTManagerOptions>>();
-                    return new Utils.MQTTGenerator(opts.Value.TopicPrefix, opts.Value.DiscoveryName);
+                    SingleReader = true,
+                    SingleWriter = true,
                 })
-                .AddSingleton<Interfaces.IMQTTLiason<TData, TCmd>, TMqttLiason>()
-                .AddHostedService<Managers.MQTTManager<TData, TCmd>>();
+            )
+            .AddSingleton<Channel<TCmd>>(x =>
+                Channel.CreateUnbounded<TCmd>(new UnboundedChannelOptions
+                {
+                    SingleReader = true,
+                    SingleWriter = true,
+                })
+            )
+            .AddSingleton<ChannelReader<TData>>(x =>
+            {
+                var ch = x.GetRequiredService<Channel<TData>>();
+                return ch.Reader;
+            })
+            .AddSingleton<ChannelWriter<TData>>(x =>
+            {
+                var ch = x.GetRequiredService<Channel<TData>>();
+                return ch.Writer;
+            })
+            .AddSingleton<ChannelReader<TCmd>>(x =>
+            {
+                var ch = x.GetRequiredService<Channel<TCmd>>();
+                return ch.Reader;
+            })
+            .AddSingleton<ChannelWriter<TCmd>>(x =>
+            {
+                var ch = x.GetRequiredService<Channel<TCmd>>();
+                return ch.Writer;
+            })
+            .AddSingleton<Interfaces.IIPC<TData, TCmd>, IPCManager<TData, TCmd>>()
+            .AddSingleton<Interfaces.IIPC<TCmd, TData>, IPCManager<TCmd, TData>>();
     }
+
+    /// <summary>
+    /// Register source liasons, managers, etc.
+    /// </summary>
+    /// <param name="services"></param>
+    /// <typeparam name="TData"></typeparam>
+    /// <typeparam name="TCmd"></typeparam>
+    /// <typeparam name="TSourceLiason"></typeparam>
+    /// <returns></returns>
+    public static IServiceCollection AddSource<TData, TCmd, TSourceLiason>(this IServiceCollection services)
+        where TData : class
+        where TCmd : class
+        where TSourceLiason : class, Interfaces.ISourceLiason<TData, TCmd> =>
+        services
+            .AddSingleton<Interfaces.ISourceLiason<TData, TCmd>, TSourceLiason>()
+            .AddHostedService<Managers.SourceManager<TData, TCmd>>();
+
+    /// <summary>
+    /// Register MQTT liasons, managers, etc.
+    /// </summary>
+    /// <param name="services"></param>
+    /// <typeparam name="TData"></typeparam>
+    /// <typeparam name="TCmd"></typeparam>
+    /// <typeparam name="TMqttLiason"></typeparam>
+    /// <returns></returns>
+    public static IServiceCollection AddMqtt<TData, TCmd, TMqttLiason>(this IServiceCollection services)
+        where TData : class
+        where TCmd : class
+        where TMqttLiason : class, Interfaces.IMQTTLiason<TData, TCmd> =>
+        services
+            .AddSingleton<IMqttNetLogger, Loggers.MQTTNetLogger>()
+            .AddSingleton<IManagedMqttClient>(x =>
+            {
+                var logger = x.GetRequiredService<IMqttNetLogger>();
+                return new MqttFactory().CreateManagedMqttClient(logger);
+            })
+            .AddSingleton<Interfaces.IMQTTGenerator, Utils.MQTTGenerator>(x =>
+            {
+                var opts = x.GetRequiredService<IOptions<Models.MQTTManagerOptions>>();
+                return new Utils.MQTTGenerator(opts.Value.TopicPrefix, opts.Value.DiscoveryName);
+            })
+            .AddSingleton<Interfaces.IMQTTLiason<TData, TCmd>, TMqttLiason>()
+            .AddHostedService<Managers.MQTTManager<TData, TCmd>>();
 }

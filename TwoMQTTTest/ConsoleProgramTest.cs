@@ -8,48 +8,47 @@ using TwoMQTT;
 using TwoMQTT.Interfaces;
 using TwoMQTT.Managers;
 
-namespace TwoMQTTTest
+namespace TwoMQTTTest;
+
+[TestClass]
+public class ConsoleProgramTest
 {
-    [TestClass]
-    public class ConsoleProgramTest
+    [TestMethod]
+    public void TestPrintVersion()
     {
-        [TestMethod]
-        public async Task TestPrintVersion()
+        var env = "TOTESANENVVARIABLE";
+        var tests = new[]
         {
-            var env = "TOTESANENVVARIABLE";
-            var tests = new[]
-            {
                 new { args = new string[] {}, Expected = true },
                 new { args = new string[] { "test", "version" }, Expected = false }
             };
 
-            foreach (var test in tests)
-            {
-                Environment.SetEnvironmentVariable(env, string.Empty);
+        foreach (var test in tests)
+        {
+            Environment.SetEnvironmentVariable(env, string.Empty);
 
-                _ = ConsoleProgram<object, object, TestSourceLiason, TestMqttLiason>
-                    .ExecuteAsync(test.args,
-                        envs: new Dictionary<string, string> { { env, env } }
-                    );
-                var actual = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(env) ?? string.Empty);
+            _ = ConsoleProgram<object, object, TestSourceLiason, TestMqttLiason>
+                .ExecuteAsync(test.args,
+                    envs: new Dictionary<string, string> { { env, env } }
+                );
+            var actual = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(env) ?? string.Empty);
 
-                Assert.AreEqual(test.Expected, actual);
-            }
+            Assert.AreEqual(test.Expected, actual);
         }
     }
+}
 
-    public class TestSourceLiason : ISourceLiason<object, object>
+public class TestSourceLiason : ISourceLiason<object, object>
+{
+    public IAsyncEnumerable<object> ReceiveDataAsync(CancellationToken cancellationToken = default)
     {
-        public IAsyncEnumerable<object> FetchAllAsync(CancellationToken cancellationToken = default)
-        {
-            throw new NotImplementedException();
-        }
+        throw new NotImplementedException();
     }
-    public class TestMqttLiason: IMQTTLiason<object, object>
+}
+public class TestMqttLiason : IMQTTLiason<object, object>
+{
+    public IEnumerable<(string topic, string payload)> MapData(object input)
     {
-        public IEnumerable<(string topic, string payload)> MapData(object input)
-        {
-            throw new NotImplementedException();
-        }
+        throw new NotImplementedException();
     }
 }
