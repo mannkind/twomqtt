@@ -1,6 +1,6 @@
 using System;
 using Microsoft.Extensions.Logging;
-using MQTTnet.Diagnostics;
+using MQTTnet.Diagnostics.Logger;
 
 namespace TwoMQTT.Loggers
 {
@@ -9,11 +9,6 @@ namespace TwoMQTT.Loggers
         public MQTTNetLogger(ILogger<MQTTNetLogger> logger)
         {
             this.Logger = logger;
-        }
-
-        public IMqttNetScopedLogger CreateScopedLogger(string source)
-        {
-            return new MqttNetScopedLogger(this, source);
         }
 
         public void Publish(MqttNetLogLevel logLevel, string source, string message, object[] parameters, Exception exception)
