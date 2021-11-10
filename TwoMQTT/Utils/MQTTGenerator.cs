@@ -61,6 +61,7 @@ public class MQTTGenerator : Interfaces.IMQTTGenerator
     /// <inheritdoc />
     public Models.MQTTDiscovery BuildDiscovery(string slug, string sensor, AssemblyName assembly, bool hasCommand)
     {
+        var deviceName = $"{assembly.Name?.ToLower() ?? "unknown"}2mqtt-{slug}";
         return new Models.MQTTDiscovery
         {
             Name = this.Stringify(this.DiscoveryName, slug, sensor, ' '),
@@ -70,8 +71,8 @@ public class MQTTGenerator : Interfaces.IMQTTGenerator
             UniqueId = this.Stringify(this.DiscoveryName, slug, sensor, '.'),
             Device = new Models.MQTTDiscovery.DiscoveryDevice
             {
-                Identifiers = new List<string> { this.AvailabilityTopic() },
-                Name = $"{assembly.Name?.ToLower() ?? "unknown"}2mqtt",
+                Identifiers = new List<string> { $"{deviceName}-{this.AvailabilityTopic()}" },
+                Name = deviceName,
                 SWVersion = $"v{assembly.Version?.ToString() ?? "0.0.0"}",
                 Manufacturer = "twomqtt"
             }
