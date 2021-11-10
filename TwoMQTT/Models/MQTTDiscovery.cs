@@ -132,6 +132,10 @@ public record MQTTDiscovery
     [DefaultValue("")]
     public string DockedTemplate { get; init; } = string.Empty;
 
+    [JsonProperty("entity_category")]
+    [DefaultValue("")]
+    public string EntityCategory { get; init; } = string.Empty;
+
     [JsonProperty("error_topic")]
     [DefaultValue("")]
     public string ErrorTopic { get; init; } = string.Empty;
@@ -547,7 +551,7 @@ public record MQTTDiscovery
     /// <summary>
     /// An class representing fields in a MQTT Discovery Device payload.
     /// </summary>
-    public class DiscoveryDevice
+    public record DiscoveryDevice
     {
         [JsonProperty("identifiers")]
         [DefaultValue("")]
