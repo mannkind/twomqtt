@@ -23,6 +23,8 @@ runs:
         env:
           DOCKER_CLI_EXPERIMENTAL: "enabled"
         run: |
+          if [[ "${GITHUB_TOKEN" != "" ]]; then
             GITHUB_USERNAME="${DOCKER_USERNAME}"
             echo "${GITHUB_TOKEN}" | docker login ghcr.io -u "${GITHUB_USERNAME}" --password-stdin
             docker buildx build --push --platform=linux/amd64,linux/arm64,linux/arm/v7 -t "ghcr.io/${{ inputs.image }}:${{ inputs.tag }}" .
+          fi
