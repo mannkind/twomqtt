@@ -16,5 +16,10 @@ runs:
           DOCKER_CLI_EXPERIMENTAL: "enabled"
         run: |
           echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
-          echo "${GITHUB_TOKEN}" | docker login ghcr.io -u "${GITHUB_USERNAME}" --password-stdin
-          docker buildx build --push --platform=linux/amd64,linux/arm64,linux/arm/v7 -t "ghcr.io/${{ inputs.image }}:${{ inputs.tag }}" -t "${{ inputs.image }}:${{ inputs.tag }}" .
+          docker buildx build --push --platform=linux/amd64,linux/arm64,linux/arm/v7 -t "${{ inputs.image }}:${{ inputs.tag }}" .
+
+          if [[ "${GITHUB_TOKEN}" != "" ]]; then
+            GITHUB_USERNAME="${DOCKER_USERNAME}"
+            echo "${GITHUB_TOKEN}" | docker login ghcr.io -u "${GITHUB_USERNAME}" --password-stdin
+            docker buildx build --push --platform=linux/amd64,linux/arm64,linux/arm/v7 -t "ghcr.io/${{ inputs.image }}:${{ inputs.tag }}" .
+          fi
