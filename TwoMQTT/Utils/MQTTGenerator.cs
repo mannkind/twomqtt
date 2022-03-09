@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 
@@ -39,6 +40,10 @@ public class MQTTGenerator : Interfaces.IMQTTGenerator
 
 
     /// <inheritdoc />
+    public (string, string) DataReceivedTopicPayload(string slug) =>
+        (this.StateTopic(slug, DATA_RECEIVED_TIMESTAMP), System.DateTime.Now.ToString("o"));
+
+    /// <inheritdoc />
     public string Stringify(string prefix, string slug, string sensor, char seperator)
     {
         var pieces = new List<string>();
@@ -78,6 +83,23 @@ public class MQTTGenerator : Interfaces.IMQTTGenerator
             }
         };
     }
+
+    /// <inheritdoc />
+    public (string, string, string, Models.MQTTDiscovery) DataReceivedDiscovery(string slug, AssemblyName assembly, TimeSpan expiration)
+    {
+        var discovery = this.BuildDiscovery(slug, DATA_RECEIVED_TIMESTAMP, assembly, false);
+        if (expiration != System.Threading.Timeout.InfiniteTimeSpan)
+        {
+            discovery = discovery with
+            {
+                ExpireAfter = Math.Round(expiration.TotalSeconds, 0).ToString(),
+            };
+        }
+
+        return (slug, DATA_RECEIVED_TIMESTAMP, Const.SENSOR, discovery);
+    }
+
+    private const string DATA_RECEIVED_TIMESTAMP = "__DataReceived";
 
     private readonly string TopicPrefix;
     private readonly string DiscoveryName;

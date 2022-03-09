@@ -33,6 +33,8 @@ namespace TwoMQTT.Loggers
             };
         }
 
+        public bool IsEnabled => true;
+
         private readonly ILogger<MQTTNetLogger> Logger;
     }
 }
