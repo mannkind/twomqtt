@@ -23,7 +23,7 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.*" />
     <PackageReference Include="MQTTnet" Version="3.*" />
     <PackageReference Include="MQTTnet.Extensions.ManagedClient" Version="3.*" />
-    <PackageReference Include="Newtonsoft.Json" Version="12.*" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.*" />
   </ItemGroup>
 
 </Project>
