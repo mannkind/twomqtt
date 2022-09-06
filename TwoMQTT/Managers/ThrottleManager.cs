@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace TwoMQTT.Managers;
 
@@ -17,5 +19,12 @@ public class ThrottleManager : Interfaces.IThrottleManager
     public ThrottleManager(TimeSpan interval)
     {
         this.Interval = interval;
+        this.Timer = new PeriodicTimer(interval);
     }
+
+    public Task DelayAsync(CancellationToken cancellationToken = default) =>
+        this.Timer.WaitForNextTickAsync(cancellationToken).AsTask();
+
+    /// <inheritdoc />
+    private PeriodicTimer Timer { get; }
 }

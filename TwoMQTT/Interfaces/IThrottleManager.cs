@@ -30,5 +30,5 @@ public interface IThrottleManager
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     Task DelayAsync(TimeSpan interval, CancellationToken cancellationToken = default) =>
-        Task.Delay(this.Interval, cancellationToken);
+        Task.Delay(interval, cancellationToken);
 }
