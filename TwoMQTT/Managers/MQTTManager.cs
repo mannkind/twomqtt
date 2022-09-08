@@ -267,7 +267,16 @@ public class MQTTManager<TData, TCmd> : BackgroundService
         Models.MQTTDiscovery discoveryMsg, CancellationToken cancellationToken = default)
     {
         var sensorName = this.Generator.Stringify(string.Empty, slug, sensor, '_');
-
+        
+        // @TODO(mannkind) - How to make this happen automatically?
+        if (!discoveryMsg.Options.Any())
+        {
+            discoveryMsg = discoveryMsg with
+            {
+                Options = null!,
+            };
+        }
+        
         var serializer = new JsonSerializer();
         serializer.NullValueHandling = NullValueHandling.Ignore;
         serializer.DefaultValueHandling = DefaultValueHandling.Ignore;
