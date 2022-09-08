@@ -260,6 +260,10 @@ public record MQTTDiscovery
     [DefaultValue("")]
     public string Optimistic { get; init; } = string.Empty;
 
+    [JsonProperty("options")]
+    [DefaultValue("")]
+    public List<string> Options { get; init; } = new List<string>();
+
     [JsonProperty("oscillation_command_topic")]
     [DefaultValue("")]
     public string OscillationCommandTopic { get; init; } = string.Empty;
