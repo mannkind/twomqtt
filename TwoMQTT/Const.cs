@@ -51,4 +51,14 @@ public class Const
     /// Home Assistant's default word to describe a tracked device
     /// </summary>
     public const string DEVICE_TRACKER = "device_tracker";
+    
+    /// <summary>
+    /// Home Assistant's default word to describe a buttons
+    /// </summary>
+    public const string BUTTON = "button";
+    
+    /// <summary>
+    /// Home Assistant's default word to describe a select
+    /// </summary>
+    public const string SELECT = "select";
 }
