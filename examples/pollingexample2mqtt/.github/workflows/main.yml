@@ -1,83 +1,110 @@
 name: Main Workflow
 on:
   push:
-  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: container image tag
+        default: dev
 jobs:
-  all:
-    name: Build, Test, Deploy, Tag
-    runs-on: ubuntu-18.04
-
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.number }}
     steps:
-      - uses: rlespinasse/github-slug-action@1.1.1
-
-      - name: Setup envs for later
-        run: |
-          echo "DOCKER_IMAGE=mannkind/pollingexample2mqtt" >> $GITHUB_ENV
-          echo "BUILD_APP=PollingExample" >> $GITHUB_ENV
-
-      - name: Set up dotnet
-        uses: actions/setup-dotnet@v1
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: '6.0.x'
-          include-prerelease: true
+          dotnet-version: '7.0.x'
 
-      - name: Check out code
-        uses: actions/checkout@v2
+      - name: Build Project
+        run: dotnet build -c Release -o output PollingExample
 
-      - name: Build 
-        env:
-          BUILD_APP: ${{ env.BUILD_APP }}
-        run: dotnet build -c Release -o output ${BUILD_APP}
+      - name: Test Project
+        run: dotnet test --collect:"XPlat Code Coverage" PollingExampleTest
 
-      - name: Test
-        env:
-          BUILD_APP: ${{ env.BUILD_APP }}
-        run: dotnet test --collect:"XPlat Code Coverage" ${BUILD_APP}Test
-
+      - name: Obtain Version
+        id: version
+        run: echo "number=$(./output/PollingExample -- version)" >> $GITHUB_OUTPUT
+          
       - name: Upload coverage
         run: bash <(curl -s https://codecov.io/bash)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  
+  containerize:
+    name: Upload Docker Images
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: Setup more envs for later
-        env:
-          BUILD_APP: ${{ env.BUILD_APP }}
-        run: echo "BUILD_VERSION=$(./output/${BUILD_APP} -- version)" >> $GITHUB_ENV
-
-      - name: Setup docker buildx
-        id: buildx
-        uses: crazy-max/ghaction-docker-buildx@v1
+      - name: Login to Dockerhub
+        uses: docker/login-action@v2
         with:
-          version: latest
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          
+      - name: Login to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push docker images (Non-Main)
-        env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-          DOCKER_CLI_EXPERIMENTAL: "enabled"
-          DOCKER_IMAGE: ${{ env.DOCKER_IMAGE }}
+      - name: Set up Docker Context for Buildx
+        id: buildx-context
         run: |
-          echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
-          docker buildx build --push --platform=linux/amd64,linux/arm64,linux/arm/v7 -t "${DOCKER_IMAGE}:dev" .
-        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+          docker context create builders
 
-      - name: Build and push docker images (Main)
-        env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-          DOCKER_CLI_EXPERIMENTAL: "enabled"
-          DOCKER_IMAGE: ${{ env.DOCKER_IMAGE }}
-          BUILD_VERSION: ${{ env.BUILD_VERSION }}
-        run: |
-          echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
-          docker buildx build --push --platform=linux/amd64,linux/arm64,linux/arm/v7 -t "${DOCKER_IMAGE}:latest" .
-          docker buildx build --push --platform=linux/amd64,linux/arm64,linux/arm/v7 -t "${DOCKER_IMAGE}:${BUILD_VERSION}" .
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          endpoint: builders
 
-      - name: Tag and push the git release
-        env:
-          BUILD_VERSION: ${{ env.BUILD_VERSION }}
+      - name: Setup Build Version
+        id: build_version
         run: |
-          git tag -f $BUILD_VERSION
+          BUILD_VERSION="${{ needs.build.outputs.version }}"
+          echo "number=${BUILD_VERSION:1}" >> $GITHUB_OUTPUT
+
+      - name: Build and Push (Dev)
+        if: github.event_name == 'workflow_dispatch'
+        uses: docker/build-push-action@v3
+        with:
+          push: true
+          platforms: "linux/amd64,linux/arm64,linux/arm/v7"
+          build-args: |
+            BUILD_VERSION=${{ steps.build_version.outputs.number }}
+          tags: "mannkind/pollingexample2mqtt:dev"
+        
+      - name: Build and Push (Main)
+        if: github.ref == 'refs/heads/main'
+        uses: docker/build-push-action@v3
+        with:
+          push: true
+          platforms: "linux/amd64,linux/arm64,linux/arm/v7"
+          build-args: |
+            BUILD_VERSION=${{ steps.build_version.outputs.number }}
+          tags: "mannkind/pollingexample2mqtt:latest,mannkind/pollingexample2mqtt:${{ needs.build.outputs.version }},ghcr.io/mannkind/pollingexample2mqtt:latest,ghcr.io/mannkind/pollingexample2mqtt:${{ needs.build.outputs.version }}"
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: [build, containerize]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Tag Revision
+        run: |
+          git tag -f ${{ needs.build.outputs.version }}
+      - name: Push Release
+        run: |
           git push --tags
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
