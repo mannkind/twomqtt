@@ -9,7 +9,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MQTTnet;
-using MQTTnet.Client.Options;
+using MQTTnet.Client;
 using MQTTnet.Extensions.ManagedClient;
 using Newtonsoft.Json;
 using TwoMQTT.Extensions;
@@ -150,10 +150,9 @@ public class MQTTManager<TData, TCmd> : BackgroundService
 
     private async Task MQTTSetupAsync(CancellationToken cancellationToken)
     {
-        await Task.WhenAll(
-            this.ConnectedCallback(cancellationToken),
-            this.MessageReceivedCallback(cancellationToken)
-        );
+        this.SetupConnectedCallback(cancellationToken);
+        this.SetupDisconnectedCallback(cancellationToken);
+        this.SetupMessageReceivedCallback(cancellationToken);
         await this.ConnectAsync(cancellationToken);
     }
 
@@ -168,12 +167,9 @@ public class MQTTManager<TData, TCmd> : BackgroundService
                 new MqttClientOptionsBuilder()
                     .WithTcpServer(Opts.Broker)
                     .WithConditionalCredentials(!string.IsNullOrEmpty(Opts.Username), Opts.Username, Opts.Password)
-                    .WithWillMessage(new MqttApplicationMessageBuilder()
-                        .WithTopic(this.Generator.AvailabilityTopic())
-                        .WithPayload(Const.OFFLINE)
-                        .WithRetainFlag()
-                        .Build()
-                    )
+                    .WithWillTopic(this.Generator.AvailabilityTopic())
+                    .WithWillPayload(Const.OFFLINE)
+                    .WithWillRetain(true)
                 .Build()
             )
             .Build()
@@ -183,30 +179,41 @@ public class MQTTManager<TData, TCmd> : BackgroundService
     /// <summary>
     /// Setup the callback for connecting to the MQTT broker.
     /// </summary>
-    /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    private Task ConnectedCallback(CancellationToken cancellationToken = default)
+    private void SetupConnectedCallback(CancellationToken cancellationToken = default)
     {
-        this.Client.UseConnectedHandler(async e =>
+        this.Client.ConnectedAsync += async e =>
         {
+            this.Logger.LogInformation("Connected to MQTT");
+
             await Task.WhenAll(
                 this.HandleSubscribeAsync(cancellationToken),
                 this.HandleDiscoveryAsync(cancellationToken),
-                this.Client.PublishAsync(this.GenerateAvailabilityMessage(Const.ONLINE), cancellationToken)
+                this.Client.EnqueueAsync(this.GenerateAvailabilityMessage(Const.ONLINE))
             );
-        });
+        };
+    }
 
-        return Task.CompletedTask;
+    /// <summary>
+    /// Setup the callback for connecting to the MQTT broker.
+    /// </summary>
+    /// <returns></returns>
+    private void SetupDisconnectedCallback(CancellationToken cancellationToken = default)
+    {
+        this.Client.DisconnectedAsync += async e =>
+        {
+            this.Logger.LogInformation("Disconnected from MQTT: {reason}", e.ReasonString);
+            await Task.CompletedTask;
+        };
     }
 
     /// <summary>
     /// Setup the callback for receiving messages from the MQTT broker.
     /// </summary>
-    /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    private Task MessageReceivedCallback(CancellationToken cancellationToken = default)
+    private void SetupMessageReceivedCallback(CancellationToken cancellationToken = default)
     {
-        this.Client.UseApplicationMessageReceivedHandler(async e =>
+        this.Client.ApplicationMessageReceivedAsync += async e =>
         {
             var topic = e.ApplicationMessage.Topic;
             var payload = e.ApplicationMessage.ConvertPayloadToString();
@@ -214,7 +221,7 @@ public class MQTTManager<TData, TCmd> : BackgroundService
             // Another instance went offline; republish that we're still online
             if (topic == this.Generator.AvailabilityTopic() && payload == Const.OFFLINE)
             {
-                await this.Client.PublishAsync(this.GenerateAvailabilityMessage(Const.ONLINE), cancellationToken);
+                await this.Client.EnqueueAsync(this.GenerateAvailabilityMessage(Const.ONLINE));
                 return;
             }
 
@@ -226,9 +233,7 @@ public class MQTTManager<TData, TCmd> : BackgroundService
 
             await Task.WhenAll(tasks);
             await this.Liason.HandleCommandAsync(this.Client, topic, payload, cancellationToken);
-        });
-
-        return Task.CompletedTask;
+        };
     }
 
     /// <summary>
@@ -267,7 +272,7 @@ public class MQTTManager<TData, TCmd> : BackgroundService
         Models.MQTTDiscovery discoveryMsg, CancellationToken cancellationToken = default)
     {
         var sensorName = this.Generator.Stringify(string.Empty, slug, sensor, '_');
-        
+
         // @TODO(mannkind) - How to make this happen automatically?
         if (!discoveryMsg.Options.Any())
         {
@@ -276,7 +281,7 @@ public class MQTTManager<TData, TCmd> : BackgroundService
                 Options = null!,
             };
         }
-        
+
         var serializer = new JsonSerializer();
         serializer.NullValueHandling = NullValueHandling.Ignore;
         serializer.DefaultValueHandling = DefaultValueHandling.Ignore;
@@ -291,7 +296,7 @@ public class MQTTManager<TData, TCmd> : BackgroundService
             .WithRetainFlag()
             .Build();
 
-        await this.Client.PublishAsync(msg, cancellationToken);
+        await this.Client.EnqueueAsync(msg);
     }
 
     /// <summary>
@@ -304,7 +309,7 @@ public class MQTTManager<TData, TCmd> : BackgroundService
         {
             this.Logger.LogDebug("Found topic {topic}", topic);
             return new MqttTopicFilterBuilder().WithTopic(topic).Build();
-        });
+        }).ToList();
 
         await this.Client.SubscribeAsync(topics);
         this.Logger.LogDebug("Finished subscribing to topics");
@@ -322,13 +327,12 @@ public class MQTTManager<TData, TCmd> : BackgroundService
         }
 
         this.Logger.LogInformation("Publishing '{payload}' on '{topic}'", payload, topic);
-        await this.Client.PublishAsync(
+        await this.Client.EnqueueAsync(
             new MqttApplicationMessageBuilder()
                 .WithTopic(topic)
                 .WithPayload(payload)
                 .WithRetainFlag()
-                .Build(),
-            cancellationToken
+                .Build()
         );
 
         this.KnownMessages[topic] = payload;

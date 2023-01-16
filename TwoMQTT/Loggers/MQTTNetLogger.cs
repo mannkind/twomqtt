@@ -1,6 +1,6 @@
 using System;
 using Microsoft.Extensions.Logging;
-using MQTTnet.Diagnostics.Logger;
+using MQTTnet.Diagnostics;
 
 namespace TwoMQTT.Loggers
 {
