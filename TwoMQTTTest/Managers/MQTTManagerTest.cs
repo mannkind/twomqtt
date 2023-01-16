@@ -38,9 +38,9 @@ public class MQTTManagerTest
         await Task.Delay(5000);
         await obj.StopAsync(ct);
 
-        client.Verify(x => x.StartAsync(It.IsAny<IManagedMqttClientOptions>()), Times.AtMostOnce());
-        client.Verify(x => x.SubscribeAsync(It.IsAny<IEnumerable<MQTTnet.MqttTopicFilter>>()), Times.AtMostOnce());
-        client.Verify(x => x.PublishAsync(It.IsAny<MQTTnet.MqttApplicationMessage>(), It.IsAny<CancellationToken>()), Times.AtMostOnce());
+        client.Verify(x => x.StartAsync(It.IsAny<ManagedMqttClientOptions>()), Times.AtMostOnce());
+        client.Verify(x => x.SubscribeAsync(It.IsAny<ICollection<MQTTnet.Packets.MqttTopicFilter>>()), Times.AtMostOnce());
+        client.Verify(x => x.EnqueueAsync(It.IsAny<MQTTnet.MqttApplicationMessage>()), Times.AtMostOnce());
         liason.Verify(x => x.Discoveries(), Times.AtMostOnce());
         liason.Verify(x => x.Subscriptions(), Times.AtMostOnce());
         generator.Verify(x => x.AvailabilityTopic(), Times.AtMostOnce());

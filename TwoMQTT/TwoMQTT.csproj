@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <VersionPrefix>0.13.$([System.DateTime]::UtcNow.ToString(yy))$([System.DateTime]::UtcNow.DayOfYear.ToString(000)).$([System.DateTime]::UtcNow.ToString(HHmm))$([System.Math]::Floor($([MSBuild]::Divide($([System.DateTime]::UtcNow.Second), 6))))</VersionPrefix>
+    <VersionPrefix>0.14.$([System.DateTime]::UtcNow.ToString(yy))$([System.DateTime]::UtcNow.DayOfYear.ToString(000)).$([System.DateTime]::UtcNow.ToString(HHmm))$([System.Math]::Floor($([MSBuild]::Divide($([System.DateTime]::UtcNow.Second), 6))))</VersionPrefix>
     <OutputType>library</OutputType>
     <TargetFramework>net7.0</TargetFramework>
     <Nullable>enable</Nullable>
@@ -21,8 +21,8 @@
     <PackageReference Include="Microsoft.Extensions.Options" Version="7.*" />
     <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="7.*" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="7.*" />
-    <PackageReference Include="MQTTnet" Version="3.*" />
-    <PackageReference Include="MQTTnet.Extensions.ManagedClient" Version="3.*" />
+    <PackageReference Include="MQTTnet" Version="4.*" />
+    <PackageReference Include="MQTTnet.Extensions.ManagedClient" Version="4.*" />
     <PackageReference Include="Newtonsoft.Json" Version="13.*" />
   </ItemGroup>
 

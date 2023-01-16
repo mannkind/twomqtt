@@ -1,6 +1,6 @@
 using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using MQTTnet.Client.Options;
+using MQTTnet.Client;
 using TwoMQTT.Extensions;
 
 namespace TwoMQTTTest.Extensions;
@@ -32,8 +32,8 @@ public class MqttClientOptionsBuilderExtTest
                 continue;
             }
 
-            var actualPassword = obj.Credentials.Password == null ? null : System.Text.Encoding.Default.GetString(obj.Credentials.Password);
-            Assert.AreEqual(test.Username, obj.Credentials.Username, "Username mismatch");
+            var actualPassword = obj.Credentials.GetPassword(obj) == null ? null : System.Text.Encoding.Default.GetString(obj.Credentials.GetPassword(obj));
+            Assert.AreEqual(test.Username, obj.Credentials.GetUserName(obj), "Username mismatch");
             Assert.AreEqual(test.Password, actualPassword, "Password mismatch");
         }
     }

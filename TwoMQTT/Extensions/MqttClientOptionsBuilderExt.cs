@@ -1,4 +1,4 @@
-using MQTTnet.Client.Options;
+using MQTTnet.Client;
 
 namespace TwoMQTT.Extensions;
 
