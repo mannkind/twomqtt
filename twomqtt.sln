@@ -1,0 +1,52 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.002.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TwoMQTTTest", "TwoMQTTTest\TwoMQTTTest.csproj", "{233B853F-6D4C-4DA5-81E0-1C20F08E7401}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TwoMQTT", "TwoMQTT\TwoMQTT.csproj", "{6A7266DD-715A-4FEE-A48C-BAAD7F261DDA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "examples", "examples", "{34B4435A-D595-4FB6-9E2E-8172CF5E589B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "pollingexample2mqtt", "pollingexample2mqtt", "{CE82DB79-3DDB-41CB-A5C1-143794C1F6AC}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PollingExample", "examples\pollingexample2mqtt\PollingExample\PollingExample.csproj", "{1B6BF69A-9AC0-47CB-A39A-988D9D5733CC}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PollingExampleTest", "examples\pollingexample2mqtt\PollingExampleTest\PollingExampleTest.csproj", "{D46A106D-594E-45A8-92A6-7BB5821CED7D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{233B853F-6D4C-4DA5-81E0-1C20F08E7401}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{233B853F-6D4C-4DA5-81E0-1C20F08E7401}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{233B853F-6D4C-4DA5-81E0-1C20F08E7401}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{233B853F-6D4C-4DA5-81E0-1C20F08E7401}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6A7266DD-715A-4FEE-A48C-BAAD7F261DDA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6A7266DD-715A-4FEE-A48C-BAAD7F261DDA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6A7266DD-715A-4FEE-A48C-BAAD7F261DDA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6A7266DD-715A-4FEE-A48C-BAAD7F261DDA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1B6BF69A-9AC0-47CB-A39A-988D9D5733CC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1B6BF69A-9AC0-47CB-A39A-988D9D5733CC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1B6BF69A-9AC0-47CB-A39A-988D9D5733CC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1B6BF69A-9AC0-47CB-A39A-988D9D5733CC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D46A106D-594E-45A8-92A6-7BB5821CED7D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D46A106D-594E-45A8-92A6-7BB5821CED7D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D46A106D-594E-45A8-92A6-7BB5821CED7D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D46A106D-594E-45A8-92A6-7BB5821CED7D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{CE82DB79-3DDB-41CB-A5C1-143794C1F6AC} = {34B4435A-D595-4FB6-9E2E-8172CF5E589B}
+		{1B6BF69A-9AC0-47CB-A39A-988D9D5733CC} = {CE82DB79-3DDB-41CB-A5C1-143794C1F6AC}
+		{D46A106D-594E-45A8-92A6-7BB5821CED7D} = {CE82DB79-3DDB-41CB-A5C1-143794C1F6AC}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {6EC18BA1-B131-468D-A2BB-898AB6DE155A}
+	EndGlobalSection
+EndGlobal
