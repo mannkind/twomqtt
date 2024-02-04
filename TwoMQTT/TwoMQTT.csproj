@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <VersionPrefix>0.14.$([System.DateTime]::UtcNow.ToString(yy))$([System.DateTime]::UtcNow.DayOfYear.ToString(000)).$([System.DateTime]::UtcNow.ToString(HHmm))$([System.Math]::Floor($([MSBuild]::Divide($([System.DateTime]::UtcNow.Second), 6))))</VersionPrefix>
+    <VersionPrefix>0.15.$([System.DateTime]::UtcNow.ToString(yy))$([System.DateTime]::UtcNow.DayOfYear.ToString(000)).$([System.DateTime]::UtcNow.ToString(HHmm))$([System.Math]::Floor($([MSBuild]::Divide($([System.DateTime]::UtcNow.Second), 6))))</VersionPrefix>
     <OutputType>library</OutputType>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <IncludeSymbols>true</IncludeSymbols>
     <IncludeSource>true</IncludeSource>
